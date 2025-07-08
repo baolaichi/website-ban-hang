@@ -10,8 +10,12 @@ import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
 import jakarta.persistence.OneToMany;
 import jakarta.persistence.Table;
+import lombok.Getter;
+import lombok.Setter;
 
 @Entity
+@Getter
+@Setter
 @Table(name = "orders")
 public class Order {
     @Id
@@ -25,42 +29,5 @@ public class Order {
 
     @OneToMany(mappedBy = "order")
     List<OrderDetail> orderDetail;
-
-    public User getUser() {
-        return user;
-    }
-
-    public void setUser(User user) {
-        this.user = user;
-    }
-
-    public List<OrderDetail> getOrderDetail() {
-        return orderDetail;
-    }
-
-    public void setOrderDetail(List<OrderDetail> orderDetail) {
-        this.orderDetail = orderDetail;
-    }
-
-    public Long getId() {
-        return id;
-    }
-
-    public void setId(Long id) {
-        this.id = id;
-    }
-
-    public double getTotalPrice() {
-        return totalPrice;
-    }
-
-    public void setTotalPrice(double totalPrice) {
-        this.totalPrice = totalPrice;
-    }
-
-    @Override
-    public String toString() {
-        return "Order [id=" + id + ", totalPrice=" + totalPrice + "]";
-    }
 
 }
