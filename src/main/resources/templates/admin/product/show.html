@@ -1,0 +1,88 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+
+<head>
+    <meta charset="utf-8" />
+    <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no" />
+    <meta name="description" content="LSB-163 - Dự án laptopshop" />
+    <meta name="author" content="LSB-163" />
+    <title>Dashboard Product</title>
+    <link th:href="@{/css/styles.css}" rel="stylesheet" />
+    <script src="https://use.fontawesome.com/releases/v6.3.0/js/all.js" crossorigin="anonymous"></script>
+</head>
+
+<body class="sb-nav-fixed">
+    <!-- Header Thymeleaf fragment -->
+    <div th:replace="~{admin/layout/header :: header}"></div>
+
+    <div id="layoutSidenav">
+        <!-- Sidebar Thymeleaf fragment -->
+        <div th:replace="~{admin/layout/sidebar :: sidebar}"></div>
+
+        <div id="layoutSidenav_content">
+            <main>
+                <div class="container-fluid px-4">
+                    <h1 class="mt-4">Manage Products</h1>
+                    <ol class="breadcrumb mb-4">
+                        <li class="breadcrumb-item"><a th:href="@{/admin}">Dashboard</a></li>
+                        <li class="breadcrumb-item active">Products</li>
+                    </ol>
+
+                    <div class="mt-5">
+                        <div class="row">
+                            <div class="col-12 mx-auto">
+                                <div class="d-flex justify-content-between">
+                                    <h3>Table products</h3>
+                                    <a th:href="@{/admin/product/create}" class="btn btn-primary">Create a product</a>
+                                </div>
+
+                                <hr />
+                                <table class="table table-bordered table-hover">
+                                    <thead>
+                                        <tr>
+                                            <th>ID</th>
+                                            <th>Name</th>
+                                            <th>Price</th>
+                                            <th>Factory</th>
+                                            <th>Action</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        <tr th:each="product : ${products}">
+                                            <td th:text="${product.id}">1</td>
+                                            <td th:text="${product.name}">Laptop Name</td>
+                                            <td th:text="${T(java.lang.String).format('%,.0f', product.price)} + 'đ'">1,000đ</td>
+                                            <td th:text="${product.factory}">ASUS</td>
+                                            <td>
+                                                <a th:href="@{/admin/product/{id}(id=${product.id})}" class="btn btn-success">View</a>
+                                                <a th:href="@{/admin/product/update/{id}(id=${product.id})}" class="btn btn-warning mx-2">Update</a>
+                                                <a th:href="@{/admin/product/delete/{id}(id=${product.id})}"
+                                                   class="btn btn-danger"
+                                                   onclick="return confirm('Are you sure to delete this product?');">Delete</a>
+                                            </td>
+                                        </tr>
+
+                                        <!-- Nếu danh sách rỗng -->
+                                        <tr th:if="${#lists.isEmpty(products)}">
+                                            <td colspan="5" class="text-center">No products found</td>
+                                        </tr>
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </main>
+
+            <!-- Footer Thymeleaf fragment -->
+            <div th:replace="~{admin/layout/footer :: footer}"></div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.2.3/dist/js/bootstrap.bundle.min.js"
+            crossorigin="anonymous"></script>
+    <script th:src="@{/js/scripts.js}"></script>
+</body>
+
+</html>

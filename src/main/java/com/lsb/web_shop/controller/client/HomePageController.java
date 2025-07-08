@@ -8,6 +8,7 @@ import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.GetMapping;
 
 import com.lsb.web_shop.domain.Product;
+import com.lsb.web_shop.domain.User;
 import com.lsb.web_shop.service.ProductService;
 
 
@@ -26,13 +27,12 @@ public class HomePageController {
         return "client/homepage/show";
     }
 
-    @GetMapping("/register")
-    public String registerAccount(Model model) {
-        
-        model.addAttribute("title", "Đăng ký tài khoản");
-        return "client/auth/register";
-    }
-    
+@GetMapping("/register")
+public String registerAccount(Model model) {
+    model.addAttribute("title", "Đăng ký tài khoản");
+    model.addAttribute("newUser", new User());
+    return "client/auth/register";
+}
 
 }
 

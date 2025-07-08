@@ -69,27 +69,35 @@ public class ProductController {
         return "/admin/product/detail";
     }
 
-    @GetMapping("/admin/product/delete/{id}")
-    public String deleteProduct(Model model, @PathVariable Long id) {
-        model.addAttribute("id", id);
-        Product product = new Product();
-        product.setId(id);
-        model.addAttribute("deleteProduct", product);
-        return "/admin/product/delete";
-    }
+   // Hiển thị trang xác nhận xóa
+@GetMapping("/admin/product/delete/{id}")
+public String deleteProduct(Model model, @PathVariable Long id) {
+    Product product = new Product();
+    product.setId(id);
+    model.addAttribute("deleteProduct", product);
+    return "/admin/product/delete";
+}
 
-    @PostMapping("/admin/product/delete/")
-    public String deleteProductPage(Model model, @ModelAttribute("deleteProduct") Product product) {
-        this.productService.deleteProduct(product.getId());
-        return "redirect:/admin/product";
-    }
+// Xử lý khi nhấn xác nhận xóa
+@PostMapping("/admin/product/delete")
+public String deleteProductPage(@ModelAttribute("deleteProduct") Product product) {
+    productService.deleteProduct(product.getId());
+    return "redirect:/admin/product";
+}
 
-    @GetMapping("/admin/product/update/{id}")
-    public String updateProduct(Model model, @PathVariable Long id) {
-        Optional<Product> product = this.productService.getByIdProduct(id);
-        model.addAttribute("updateProduct", product);
+
+
+@GetMapping("/admin/product/update/{id}")
+public String updateProduct(Model model, @PathVariable Long id) {
+    Optional<Product> productOpt = productService.getByIdProduct(id);
+    if (productOpt.isPresent()) {
+        model.addAttribute("updateProduct", productOpt.get());
         return "/admin/product/update";
+    } else {
+        return "redirect:/admin/product?notfound";
     }
+}
+
 
     @PostMapping("/admin/product/update")
     public String postMethodName(@ModelAttribute("updateProduct") @Valid Product product,

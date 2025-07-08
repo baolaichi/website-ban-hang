@@ -44,5 +44,8 @@ public class ProductService {
             .collect(Collectors.toList());
 }
 
+public List<Product> searchProducts(String keyword) {
+    return productRepository.findByNameContainingIgnoreCase(keyword);
+}
 
 }
