@@ -46,6 +46,7 @@
                         <div class="row">
                             <div class="col-md-6 col-12 mx-auto">
                                 <h3>Update a product</h3>
+                                
                                 <hr />
                                 <form th:action="@{/admin/product/update}" method="post" enctype="multipart/form-data"
                                       th:object="${updateProduct}" class="row">
@@ -108,8 +109,8 @@
                                     </div>
 
                                     <div class="mb-3 col-12 col-md-6">
-                                        <label class="form-label">Target:</label>
-                                        <select class="form-select" th:field="*{target}">
+                                        <label class="form-label">Type:</label>
+                                        <select class="form-select" th:field="*{type}">
                                             <option value="GAMING">Gaming</option>
                                             <option value="SINHVIEN-VANPHONG">Sinh viên - Văn phòng</option>
                                             <option value="THIET-KE-DO-HOA">Thiết kế đồ họa</option>

@@ -47,7 +47,11 @@
                                     <tr th:each="user : ${users}">
                                         <td th:text="${user.id}">1</td>
                                         <td th:text="${user.fullName}">Nguyen Van A</td>
-                                        <td th:text="${user.role.name}">USER</td>
+                                        <td>
+                                        <span th:if="${user.role != null}" th:text="${user.role.name}"></span>
+                                        <span th:unless="${user.role != null}">Chưa có vai trò</span>
+                                        </td>
+
                                         <td>
                                             <a th:href="@{'/admin/user/view/' + ${user.id}}" class="btn btn-success">View</a>
                                             <a th:href="@{'/admin/user/delete/' + ${user.id}}" class="btn btn-danger">Delete</a>

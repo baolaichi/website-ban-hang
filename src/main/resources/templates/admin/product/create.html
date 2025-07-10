@@ -41,9 +41,8 @@
                             <div class="col-md-6 col-12 mx-auto">
                                 <h3>Create a product</h3>
                                 <hr />
-                                <form th:action="@{/admin/product/create}" th:object="${newProduct}" method="post"
-                                    enctype="multipart/form-data" class="row">
-
+                                <form th:action="@{/admin/product/create}" method="post" enctype="multipart/form-data"
+                                th:object="${newProduct}" class="row">
                                     <!-- Name -->
                                     <div class="mb-3 col-12 col-md-6">
                                         <label class="form-label">Name:</label>
@@ -104,10 +103,10 @@
                                         </select>
                                     </div>
 
-                                    <!-- Target -->
+                                    <!-- Type -->
                                     <div class="mb-3 col-12 col-md-6">
-                                        <label class="form-label">Target:</label>
-                                        <select class="form-select" th:field="*{target}">
+                                        <label class="form-label">Type:</label>
+                                        <select class="form-select" th:field="*{type}">
                                             <option value="GAMING">Gaming</option>
                                             <option value="SINHVIEN-VANPHONG">Sinh viên - Văn phòng</option>
                                             <option value="THIET-KE-DO-HOA">Thiết kế đồ họa</option>
@@ -115,6 +114,18 @@
                                             <option value="DOANH-NHAN">Doanh nhân</option>
                                         </select>
                                     </div>
+
+                                    <!-- Category -->
+                                    <div class="mb-3 col-12 col-md-6">
+                                        <label class="form-label">Danh mục:</label>
+                                        <select class="form-select" th:field="*{category.id}">
+                                            <option th:each="cat : ${categories}"
+                                                    th:value="${cat.id}"
+                                                    th:text="${cat.name}">
+                                            </option>
+                                        </select>
+                                    </div>
+
 
                                     <!-- Image upload -->
                                     <div class="mb-3 col-12 col-md-6">
