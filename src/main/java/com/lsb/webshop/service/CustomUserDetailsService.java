@@ -29,7 +29,7 @@ public class CustomUserDetailsService implements UserDetailsService {
         this.roleRepository = roleRepository;
         this.passwordEncoder = passwordEncoder;
     }
-    // Phần UserDetailsService bắt buộc phải implement
+    
     @Override
     public UserDetails loadUserByUsername(String email) throws UsernameNotFoundException {
         log.info("[UserService] loadUserByUsername() - email: {}", email);
@@ -45,7 +45,6 @@ public class CustomUserDetailsService implements UserDetailsService {
             .build();
     }
 
-    // Các phương thức quản lý User bạn đã viết
     public User findById(long id) {
         log.info("[UserService] findById() - ID: {}", id);
         return this.userRepository.findById(id);
