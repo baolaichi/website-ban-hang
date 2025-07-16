@@ -193,6 +193,65 @@ public class ProductService {
         return this.cartRepository.findByUser(user);
     }
 
+    @Transactional
+public void updateProductQuantity(String email, Long productId, int quantity) {
+    if (quantity < 1) {
+        throw new IllegalArgumentException("Số lượng phải lớn hơn hoặc bằng 1");
+    }
+
+    User user = userService.findByUsername(email);
+    if (user == null) {
+        throw new IllegalArgumentException("Người dùng không tồn tại");
+    }
+
+    Cart cart = cartRepository.findByUser(user);
+    if (cart == null) {
+        // Nếu chưa có giỏ hàng thì tạo mới
+        cart = new Cart();
+        cart.setUser(user);
+        cart.setSum(0);
+        cart = cartRepository.save(cart);
+    }
+
+    Optional<Product> productOptional = productRepository.findById(productId);
+    if (productOptional.isEmpty()) {
+        throw new IllegalArgumentException("Sản phẩm không tồn tại");
+    }
+    Product product = productOptional.get();
+
+    // Tìm CartDetail (sản phẩm trong giỏ hàng)
+    CartDetail cartDetail = cartDetailRepository.findByCartAndProduct(cart, product);
+    if (cartDetail == null) {
+        // Nếu sản phẩm chưa có trong giỏ hàng thì tạo mới
+        cartDetail = new CartDetail();
+        cartDetail.setCart(cart);
+        cartDetail.setProduct(product);
+        cartDetail.setPrice(product.getPrice());
+        cartDetail.setQuantity(quantity);
+        cartDetailRepository.save(cartDetail);
+    } else {
+        // Cập nhật lại số lượng sản phẩm
+        cartDetail.setQuantity(quantity);
+        cartDetailRepository.save(cartDetail);
+    }
+
+    if (cart != null) {
+    List<CartDetail> cartDetails = cartDetailRepository.findByCart(cart);
+
+    if (cartDetails != null) {
+        long totalQuantity = cartDetails.stream()
+                .mapToLong(CartDetail::getQuantity)
+                .sum();
+
+        cart.setSum((int) totalQuantity);
+        cartRepository.save(cart);
+    }
+}
+
+}
+
+    
+
     }
 
 

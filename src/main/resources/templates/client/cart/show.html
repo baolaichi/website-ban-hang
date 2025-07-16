@@ -1,176 +1,234 @@
 <!DOCTYPE html>
 <html lang="en" xmlns:th="http://www.thymeleaf.org">
-
 <head>
     <meta charset="utf-8" />
+
+    <!-- CSRF for AJAX -->
+    <meta name="_csrf" th:content="${_csrf.token}" />
+    <meta name="_csrf_header" th:content="${_csrf.headerName}" />
+
     <title>Giỏ hàng - Laptopshop</title>
     <meta content="width=device-width, initial-scale=1.0" name="viewport" />
-
-    <!-- Google Fonts -->
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-    <link
-        href="https://fonts.googleapis.com/css2?family=Open+Sans:wght@400;600&family=Raleway:wght@600;800&display=swap"
-        rel="stylesheet" />
-
-    <!-- Icons and Libraries -->
+    <link href="https://fonts.googleapis.com/css2?family=Open+Sans:wght@400;600&family=Raleway:wght@600;800&display=swap" rel="stylesheet" />
     <link rel="stylesheet" href="https://use.fontawesome.com/releases/v5.15.4/css/all.css" />
     <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.4.1/font/bootstrap-icons.css" rel="stylesheet" />
     <link href="/client/lib/lightbox/css/lightbox.min.css" rel="stylesheet" />
     <link href="/client/lib/owlcarousel/assets/owl.carousel.min.css" rel="stylesheet" />
-
-    <!-- Styles -->
     <link href="/client/css/bootstrap.min.css" rel="stylesheet" />
     <link href="/client/css/style.css" rel="stylesheet" />
 </head>
-
 <body>
 
-    <!-- Spinner -->
-    <div id="spinner"
-        class="show w-100 vh-100 bg-white position-fixed translate-middle top-50 start-50 d-flex align-items-center justify-content-center">
-        <div class="spinner-grow text-primary" role="status"></div>
-    </div>
+<div id="spinner" class="show w-100 vh-100 bg-white position-fixed translate-middle top-50 start-50 d-flex align-items-center justify-content-center">
+    <div class="spinner-grow text-primary" role="status"></div>
+</div>
 
-    <!-- Header -->
-    <div th:replace="~{client/layout/header :: header}"></div>
+<div th:replace="~{client/layout/header :: header}"></div>
 
-    <!-- Cart Page Start -->
-    <div class="container-fluid py-5">
-        <div class="container py-5">
+<div class="container-fluid py-5">
+    <div class="container py-5">
 
-            <!-- Breadcrumb -->
-            <div class="mb-3">
-                <nav aria-label="breadcrumb">
-                    <ol class="breadcrumb">
-                        <li class="breadcrumb-item"><a th:href="@{/}">Home</a></li>
-                        <li class="breadcrumb-item active" aria-current="page">Chi Tiết Giỏ Hàng</li>
-                    </ol>
-                </nav>
-            </div>
+        <!-- Breadcrumb -->
+        <div class="mb-3">
+            <nav aria-label="breadcrumb">
+                <ol class="breadcrumb">
+                    <li class="breadcrumb-item"><a th:href="@{/}">Home</a></li>
+                    <li class="breadcrumb-item active" aria-current="page">Chi Tiết Giỏ Hàng</li>
+                </ol>
+            </nav>
+        </div>
 
-            <!-- Cart Table -->
-            <div class="table-responsive">
-                <table class="table">
-                    <thead>
-                        <tr>
-                            <th>Sản phẩm</th>
-                            <th>Tên</th>
-                            <th>Giá cả</th>
-                            <th>Số lượng</th>
-                            <th>Thành tiền</th>
-                            <th>Xử lý</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        <!-- Nếu giỏ hàng trống -->
-                        <tr th:if="${#lists.isEmpty(cartDetails)}">
-                            <td colspan="6" class="text-center fw-bold">Không có sản phẩm trong giỏ hàng</td>
-                        </tr>
+        <!-- Table -->
+        <div class="table-responsive">
+            <table class="table">
+                <thead>
+                <tr>
+                    <th>Sản phẩm</th>
+                    <th>Tên</th>
+                    <th>Giá cả</th>
+                    <th>Số lượng</th>
+                    <th>Thành tiền</th>
+                    <th>Xử lý</th>
+                </tr>
+                </thead>
+                <tbody>
+                <tr th:if="${#lists.isEmpty(cartDetails)}">
+                    <td colspan="6" class="text-center fw-bold">Không có sản phẩm trong giỏ hàng</td>
+                </tr>
 
-                        <!-- Duyệt từng chi tiết giỏ hàng -->
-                        <tr th:each="cartDetail : ${cartDetails}">
-                            <td>
-                                <div class="d-flex align-items-center">
-                                    <img th:src="@{'/images/product/' + ${cartDetail.product.image}}"
-                                        class="img-fluid me-5 rounded-circle" style="width: 80px; height: 80px;"
-                                        alt="Sản phẩm" />
-                                </div>
-                            </td>
-                            <td>
-                                <p class="mb-0 mt-4">
-                                    <a th:href="@{/product/{id}(id=${cartDetail.product.id})}" target="_blank"
-                                        th:text="${cartDetail.product.name}">Tên sản phẩm</a>
-                                </p>
-                            </td>
-                            <td>
-                                <p class="mb-0 mt-4"
-                                    th:text="${#numbers.formatDecimal(cartDetail.price, 0, 'COMMA', 0, 'POINT')} + ' đ'">0
-                                    đ</p>
-                            </td>
-                            <td>
-                                <div class="input-group quantity mt-4" style="width: 100px;">
-                                    <div class="input-group-btn">
-                                        <button class="btn btn-sm btn-minus rounded-circle bg-light border">
-                                            <i class="fa fa-minus"></i>
-                                        </button>
-                                    </div>
-                                    <input type="text" class="form-control form-control-sm text-center border-0"
-                                        th:value="${cartDetail.quantity}"
-                                        th:attr="data-cart-detail-id=${cartDetail.id},data-cart-detail-price=${cartDetail.price}" />
-                                    <div class="input-group-btn">
-                                        <button class="btn btn-sm btn-plus rounded-circle bg-light border">
-                                            <i class="fa fa-plus"></i>
-                                        </button>
-                                    </div>
-                                </div>
-                            </td>
-                            <td>
-                                <p class="mb-0 mt-4"
-                                    th:text="${#numbers.formatDecimal(cartDetail.price * cartDetail.quantity, 0, 'COMMA', 0, 'POINT')} + ' đ'">
-                                    0 đ</p>
-                            </td>
-                            <td>
-                                <button class="btn btn-md rounded-circle bg-light border mt-4">
-                                    <i class="fa fa-times text-danger"></i>
+                <tr th:each="cartDetail : ${cartDetails}">
+                    <td>
+                        <img th:src="@{'/images/product/' + ${cartDetail.product.image}}"
+                             class="img-fluid me-5 rounded-circle" style="width: 80px; height: 80px;" alt="Sản phẩm" />
+                    </td>
+                    <td>
+                        <p class="mb-0 mt-4">
+                            <a th:href="@{/product/{id}(id=${cartDetail.product.id})}" target="_blank"
+                               th:text="${cartDetail.product.name}">Tên sản phẩm</a>
+                        </p>
+                    </td>
+                    <td>
+                        <p class="mb-0 mt-4"
+                           th:text="${#numbers.formatDecimal(cartDetail.price, 0, 'COMMA', 0, 'POINT')} + ' đ'">0 đ</p>
+                    </td>
+                    <td>
+                        <div class="input-group quantity mt-4" style="width: 100px;">
+                            <div class="input-group-btn">
+                                <button class="btn btn-sm btn-minus rounded-circle bg-light border">
+                                    <i class="fa fa-minus"></i>
                                 </button>
-                            </td>
-                        </tr>
-                    </tbody>
-                </table>
-            </div>
-
-            <!-- Tổng tiền đơn hàng -->
-            <div class="mt-5 row g-4 justify-content-start" th:if="${not #lists.isEmpty(cartDetails)}">
-                <div class="col-12 col-md-8">
-                    <div class="bg-light rounded">
-                        <div class="p-4">
-                            <h1 class="display-6 mb-4">Thông Tin <span class="fw-normal">Đơn Hàng</span></h1>
-                            <div class="d-flex justify-content-between mb-4">
-                                <h5 class="mb-0 me-4">Tạm tính:</h5>
-                                <p class="mb-0" th:attr="data-cart-total-price=${totalPrice}"
-                                    th:text="${#numbers.formatDecimal(totalPrice, 0, 'COMMA', 0, 'POINT')} + ' đ'">0 đ</p>
                             </div>
-                            <div class="d-flex justify-content-between">
-                                <h5 class="mb-0 me-4">Phí vận chuyển</h5>
-                                <p class="mb-0">0 đ</p>
+                            <input type="text" class="form-control form-control-sm text-center border-0"
+                                   th:value="${cartDetail.quantity}"
+                                   th:attr="data-cart-detail-id=${cartDetail.product.id},data-cart-detail-price=${cartDetail.price}"
+                                   readonly />
+                            <div class="input-group-btn">
+                                <button class="btn btn-sm btn-plus rounded-circle bg-light border">
+                                    <i class="fa fa-plus"></i>
+                                </button>
                             </div>
                         </div>
-                        <div
-                            class="py-4 mb-4 border-top border-bottom d-flex justify-content-between">
-                            <h5 class="mb-0 ps-4 me-4">Tổng số tiền</h5>
-                            <p class="mb-0 pe-4" th:attr="data-cart-total-price=${totalPrice}"
-                                th:text="${#numbers.formatDecimal(totalPrice, 0, 'COMMA', 0, 'POINT')} + ' đ'">0 đ</p>
-                        </div>
-                        <button type="button"
-                            class="btn border-secondary rounded-pill px-4 py-3 text-primary text-uppercase mb-4 ms-4">
-                            Xác nhận đặt hàng
+                    </td>
+                    <td>
+                        <p class="mb-0 mt-4 line-total"
+                           th:text="${#numbers.formatDecimal(cartDetail.price * cartDetail.quantity, 0, 'COMMA', 0, 'POINT')} + ' đ'">0 đ</p>
+                    </td>
+                    <td>
+                        <button class="btn btn-md rounded-circle bg-light border mt-4">
+                            <i class="fa fa-times text-danger"></i>
                         </button>
+                    </td>
+                </tr>
+                </tbody>
+            </table>
+        </div>
+
+        <!-- Tổng tiền -->
+        <div class="mt-5 row g-4 justify-content-start" th:if="${not #lists.isEmpty(cartDetails)}">
+            <div class="col-12 col-md-8">
+                <div class="bg-light rounded">
+                    <div class="p-4">
+                        <h1 class="display-6 mb-4">Thông Tin <span class="fw-normal">Đơn Hàng</span></h1>
+                        <div class="d-flex justify-content-between mb-4">
+                            <h5 class="mb-0 me-4">Tạm tính:</h5>
+                            <p class="mb-0" th:attr="data-cart-total-price=${totalPrice}"
+                               th:text="${#numbers.formatDecimal(totalPrice, 0, 'COMMA', 0, 'POINT')} + ' đ'">0 đ</p>
+                        </div>
+                        <div class="d-flex justify-content-between">
+                            <h5 class="mb-0 me-4">Phí vận chuyển</h5>
+                            <p class="mb-0">0 đ</p>
+                        </div>
                     </div>
+                    <div class="py-4 mb-4 border-top border-bottom d-flex justify-content-between">
+                        <h5 class="mb-0 ps-4 me-4">Tổng số tiền</h5>
+                        <p class="mb-0 pe-4" th:attr="data-cart-total-price=${totalPrice}"
+                           th:text="${#numbers.formatDecimal(totalPrice, 0, 'COMMA', 0, 'POINT')} + ' đ'">0 đ</p>
+                    </div>
+                    <button type="button"
+                            class="btn border-secondary rounded-pill px-4 py-3 text-primary text-uppercase mb-4 ms-4">
+                        Xác nhận đặt hàng
+                    </button>
                 </div>
             </div>
-
         </div>
+
     </div>
-    <!-- Cart Page End -->
+</div>
 
-    <!-- Footer -->
-    <div th:replace="~{client/layout/footer :: footer}"></div>
+<div th:replace="~{client/layout/footer :: footer}"></div>
 
-    <!-- Back to Top -->
-    <a href="#" class="btn btn-primary border-3 border-primary rounded-circle back-to-top"><i
-            class="fa fa-arrow-up"></i></a>
+<a href="#" class="btn btn-primary border-3 border-primary rounded-circle back-to-top"><i class="fa fa-arrow-up"></i></a>
 
-    <!-- JavaScript Libraries -->
-    <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.6.4/jquery.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.0.0/dist/js/bootstrap.bundle.min.js"></script>
-    <script src="/client/lib/easing/easing.min.js"></script>
-    <script src="/client/lib/waypoints/waypoints.min.js"></script>
-    <script src="/client/lib/lightbox/js/lightbox.min.js"></script>
-    <script src="/client/lib/owlcarousel/owl.carousel.min.js"></script>
+<!-- JS Libraries -->
+<script src="https://ajax.googleapis.com/ajax/libs/jquery/3.6.4/jquery.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.0.0/dist/js/bootstrap.bundle.min.js"></script>
+<script src="/client/lib/easing/easing.min.js"></script>
+<script src="/client/lib/waypoints/waypoints.min.js"></script>
+<script src="/client/lib/lightbox/js/lightbox.min.js"></script>
+<script src="/client/lib/owlcarousel/owl.carousel.min.js"></script>
+<script src="/client/js/main.js"></script>
 
-    <!-- Template Javascript -->
-    <script src="/client/js/main.js"></script>
+<script>
+    (function ($) {
+        "use strict";
+
+        function formatCurrency(value) {
+            const formatter = new Intl.NumberFormat('vi-VN', {
+                style: 'decimal',
+                minimumFractionDigits: 0,
+            });
+            let formatted = formatter.format(value);
+            formatted = formatted.replace(/\./g, ',');
+            return formatted;
+        }
+
+        $(document).ready(function () {
+            const token = $("meta[name='_csrf']").attr("content");
+            const header = $("meta[name='_csrf_header']").attr("content");
+
+            $(document).ajaxSend(function (e, xhr, options) {
+                xhr.setRequestHeader(header, token);
+            });
+
+            $('.quantity button').on('click', function () {
+                let change = 0;
+
+                const button = $(this);
+                const input = button.closest('.quantity').find('input');
+                const oldValue = parseInt(input.val());
+                let newVal = oldValue;
+
+                if (button.hasClass('btn-plus')) {
+                    newVal = oldValue + 1;
+                    change = 1;
+                } else if (oldValue > 1) {
+                    newVal = oldValue - 1;
+                    change = -1;
+                }
+
+                input.val(newVal);
+
+                const price = parseFloat(input.attr("data-cart-detail-price"));
+                const productId = input.attr("data-cart-detail-id");
+
+                const priceElement = $(`p.line-total`).filter(function () {
+                    return $(this).closest('tr').find(`input[data-cart-detail-id='${productId}']`).length > 0;
+                });
+
+                if (priceElement.length) {
+                    const newPrice = price * newVal;
+                    priceElement.text(formatCurrency(newPrice.toFixed(0)) + " đ");
+                }
+
+                // Gửi AJAX
+                $.ajax({
+                    url: "/cart/update",
+                    type: "POST",
+                    data: {
+                        productId: productId,
+                        quantity: newVal
+                    },
+                    success: function (response) {
+                        console.log("Cập nhật giỏ hàng thành công:", response);
+
+                        if (response.totalPrice !== undefined) {
+                            $("p[data-cart-total-price]").each(function () {
+                                $(this).text(formatCurrency(response.totalPrice.toFixed(0)) + " đ");
+                            });
+                        }
+                    },
+                    error: function () {
+                        alert("Cập nhật giỏ hàng thất bại, vui lòng thử lại");
+                        input.val(oldValue); // Rollback nếu lỗi
+                    }
+                });
+            });
+        });
+
+    })(jQuery);
+</script>
+
 </body>
-
 </html>
