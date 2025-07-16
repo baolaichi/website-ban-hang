@@ -1,6 +1,7 @@
 package com.lsb.webshop.controller.client;
 
 
+import java.security.Principal;
 import java.util.List;
 
 import org.springframework.stereotype.Controller;
@@ -13,6 +14,8 @@ import com.lsb.webshop.domain.Product;
 import com.lsb.webshop.domain.dto.registerDTO;
 import com.lsb.webshop.service.ProductService;
 import com.lsb.webshop.service.UserService;
+
+import jakarta.servlet.http.HttpSession;
 
 
 
@@ -27,10 +30,36 @@ public class HomePageController {
     }
 
     @GetMapping("/")
-    public String getMethodName(Model model) {
+    public String getMethodName(Model model, HttpSession session, Principal principal) {
+    List<Product> products = this.productService.getAllActiveProducts();
+    model.addAttribute("products", products);
+
+    // Nếu đã đăng nhập thì lấy thông tin user
+    if (principal != null) {
+        String username = principal.getName(); // lấy username hiện tại
+        var user = userService.findByUsername(username);
+        session.setAttribute("fullName", user.getFullName());
+        session.setAttribute("avatar", user.getAvatar());
+    }
+
+    return "client/homepage/show";
+    }
+
+        @GetMapping("/products")
+    public String getFullProduct(Model model, HttpSession session, Principal principal){
         List<Product> products = this.productService.getAllActiveProducts();
         model.addAttribute("products", products);
-        return "client/homepage/show";
+
+        if(principal != null){
+            String userName = principal.getName();
+            var user = userService.findByUsername(userName);
+
+            session.setAttribute("fullName", user.getFullName());
+            session.setAttribute("avatar", user.getAvatar());
+        }
+
+        return "client/product/show";
+
     }
 
     @GetMapping("/register")
@@ -54,6 +83,11 @@ public class HomePageController {
      @GetMapping("/login")
     public String loginPage() {
         return "client/auth/login";
+    }
+
+    @GetMapping("/access-deny")
+    public String accessDeniedPage() {
+        return "client/auth/deny";
     }
 
 }

@@ -6,9 +6,15 @@ import java.util.stream.Collectors;
 
 import org.springframework.stereotype.Service;
 
+import com.lsb.webshop.domain.Cart;
+import com.lsb.webshop.domain.CartDetail;
 import com.lsb.webshop.domain.Product;
+import com.lsb.webshop.domain.User;
+import com.lsb.webshop.repository.CartDetailRepository;
+import com.lsb.webshop.repository.CartRepository;
 import com.lsb.webshop.repository.ProductRepository;
 
+import jakarta.servlet.http.HttpSession;
 import jakarta.transaction.Transactional;
 import lombok.extern.slf4j.Slf4j;
 
@@ -17,9 +23,18 @@ import lombok.extern.slf4j.Slf4j;
 public class ProductService {
 
     private final ProductRepository productRepository;
+    private final CartRepository cartRepository;
+    private final CartDetailRepository cartDetailRepository;
+    private final UserService userService;
 
-    public ProductService(ProductRepository productRepository) {
+    public ProductService(ProductRepository productRepository,
+                        CartRepository cartRepository,
+                        CartDetailRepository cartDetailRepository,
+                        UserService userService) {
         this.productRepository = productRepository;
+        this.cartRepository = cartRepository;
+        this.cartDetailRepository = cartDetailRepository;
+        this.userService = userService;
     }
 
     // Lưu hoặc cập nhật sản phẩm
@@ -132,6 +147,52 @@ public class ProductService {
     } else {
         throw new IllegalArgumentException("Không tìm thấy sản phẩm với id = " + id);
     }
-}
+    }
 
-}
+    public void addProductToCart(String email, long id, HttpSession session) {
+        User user = this.userService.findByUsername(email);
+        log.info("[addProductToCart] Người dùng '{}' đang thêm sản phẩm với ID: {}", email, id);
+        Cart cart = this.cartRepository.findByUser(user);
+        if(cart == null){
+            Cart OtheCart = new Cart();
+            OtheCart.setUser(user);
+            OtheCart.setSum(0);
+
+            cart = this.cartRepository.save(OtheCart);
+        }
+
+        Optional<Product> productOptional = this.productRepository.findById(id);
+        if(productOptional.isPresent()){
+            Product realProduct = productOptional.get();
+
+            CartDetail cartDetail = this.cartDetailRepository.findByCartAndProduct(cart, realProduct);
+            log.info("[addProductToCart] Kiểm tra xem sản phẩm đã có trong giỏ hàng hay chưa");
+            if(cartDetail == null){
+                CartDetail newCartDetail = new CartDetail();
+                newCartDetail.setCart(cart);
+                newCartDetail.setProduct(realProduct);
+                newCartDetail.setPrice(realProduct.getPrice());
+                newCartDetail.setQuantity(1);
+
+                this.cartDetailRepository.save(newCartDetail);
+
+                int s = cart.getSum() + 1;
+                cart.setSum(s);
+                this.cartRepository.save(cart);
+                session.setAttribute("sum", s);
+            }else{
+                log.warn(email + " đã có sản phẩm này trong giỏ hàng, tăng thêm số lượng");
+                cartDetail.setQuantity(cartDetail.getQuantity() + 1);
+                this.cartDetailRepository.save(cartDetail);
+            }
+        }
+
+    }
+
+    public Cart fetchByUser(User user){
+        return this.cartRepository.findByUser(user);
+    }
+
+    }
+
+

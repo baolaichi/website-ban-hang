@@ -2,7 +2,6 @@ package com.lsb.webshop.service;
 
 import java.util.List;
 
-import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
@@ -129,9 +128,9 @@ public class UserService {
     public List<Role> getAllRoles() {
     log.info("[UserService] getAllRoles() - Lấy danh sách tất cả vai trò");
     return this.roleRepository.findAll();
-}
+    }
 
-public void register(registerDTO dto) {
+    public void register(registerDTO dto) {
         User user = new User();
         user.setEmail(dto.getEmail());
         user.setPassword(passwordEncoder.encode(dto.getPassword()));
@@ -143,6 +142,11 @@ public void register(registerDTO dto) {
         user.setRole(userRole);
 
         userRepository.save(user);
+    }
+
+    public User findByUsername(String email) {
+    return userRepository.findByEmail(email)
+            .orElseThrow(() -> new UsernameNotFoundException("Không tìm thấy người dùng: " + email));
     }
 
 }

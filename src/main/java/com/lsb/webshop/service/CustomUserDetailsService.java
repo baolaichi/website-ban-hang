@@ -60,6 +60,10 @@ public class CustomUserDetailsService implements UserDetailsService {
         return this.userRepository.findById(id);
     }
 
+    public User getUserByEmail(String email) {
+    return userRepository.findByEmail(email).orElse(null);
+    }
+
     public User SaveUser(User user) {
         String fullName = user.getFullName();
         String email = user.getEmail();

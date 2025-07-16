@@ -11,9 +11,16 @@ import org.springframework.security.web.SecurityFilterChain;
 @Configuration
 @EnableWebSecurity
 public class SecurityConfiguration {
+    private final CustomSuccessHandler customSuccessHandler;
+
+    public SecurityConfiguration(CustomSuccessHandler customSuccessHandler) {
+        this.customSuccessHandler = customSuccessHandler;
+    }
+
+    // Cấu hình bảo mật cho ứng dụng
 
    @Bean
-public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
+public SecurityFilterChain securityFilterChain(HttpSecurity http, CustomSuccessHandler successHandler) throws Exception {
     http
         .authorizeHttpRequests(auth -> auth
             .requestMatchers("/css/**", "/js/**", "/images/**").permitAll()
@@ -23,10 +30,10 @@ public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Excepti
             .requestMatchers("/cart/**", "/checkout/**").authenticated()
             .anyRequest().permitAll()
         )
-        .formLogin(form -> form
+            .formLogin(form -> form
             .loginPage("/login")
             .loginProcessingUrl("/login")
-            .defaultSuccessUrl("/", true)
+            .successHandler(customSuccessHandler) // gọi bean CustomSuccessHandler
             .failureUrl("/login?error=true")
             .permitAll()
         )
@@ -35,10 +42,11 @@ public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Excepti
             .logoutSuccessUrl("/login?logout")
             .permitAll()
         )
-        .exceptionHandling(ex -> ex.accessDeniedPage("/403"));
+        .exceptionHandling(ex -> ex.accessDeniedPage("/access-deny"));
 
     return http.build();
 }
+
 
 
     @Bean

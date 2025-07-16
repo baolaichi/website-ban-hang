@@ -5,52 +5,29 @@ import org.springframework.context.annotation.Configuration;
 import org.springframework.web.servlet.config.annotation.EnableWebMvc;
 import org.springframework.web.servlet.config.annotation.ResourceHandlerRegistry;
 import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
-import org.thymeleaf.spring6.SpringTemplateEngine;
-import org.thymeleaf.spring6.view.ThymeleafViewResolver;
-import org.thymeleaf.templateresolver.ClassLoaderTemplateResolver;
-import org.thymeleaf.templateresolver.ITemplateResolver;
+import org.thymeleaf.extras.springsecurity6.dialect.SpringSecurityDialect;
 
 @Configuration
 @EnableWebMvc
 public class WebMvcConfig implements WebMvcConfigurer {
 
-  @Bean
-  public ITemplateResolver templateResolver() {
-    ClassLoaderTemplateResolver templateResolver = new ClassLoaderTemplateResolver();
-    templateResolver.setPrefix("templates/");
-    templateResolver.setSuffix(".html");
-    templateResolver.setTemplateMode("HTML");
-    templateResolver.setCharacterEncoding("UTF-8");
-    templateResolver.setCacheable(false);               // tắt cache khi dev để dễ thay đổi file
-    return templateResolver;
-  }
+    // Cấu hình ánh xạ tài nguyên tĩnh
+    @Override
+    public void addResourceHandlers(ResourceHandlerRegistry registry) {
+        registry.addResourceHandler("/css/**").addResourceLocations("classpath:/static/css/");
+        registry.addResourceHandler("/js/**").addResourceLocations("classpath:/static/js/");
+        registry.addResourceHandler("/images/**").addResourceLocations("classpath:/static/images/");
+        registry.addResourceHandler("/client/**").addResourceLocations("classpath:/static/client/");
 
-  @Bean
-  public SpringTemplateEngine templateEngine() {
-    SpringTemplateEngine templateEngine = new SpringTemplateEngine();
-    templateEngine.setTemplateResolver(templateResolver());
-    templateEngine.setEnableSpringELCompiler(true);
-    return templateEngine;
-  }
+        // Cấu hình đường dẫn tới ảnh người dùng upload
+        String uploadDir = System.getProperty("user.dir") + "/uploads/images/";
+        registry.addResourceHandler("/images/**")
+                .addResourceLocations("file:" + uploadDir);
+    }
 
-  @Bean
-  public ThymeleafViewResolver viewResolver() {
-    ThymeleafViewResolver viewResolver = new ThymeleafViewResolver();
-    viewResolver.setTemplateEngine(templateEngine());
-    viewResolver.setCharacterEncoding("UTF-8");
-    return viewResolver;
-  }
-
-  @Override
-  public void addResourceHandlers(ResourceHandlerRegistry registry) {
-    registry.addResourceHandler("/css/**").addResourceLocations("classpath:/static/css/");
-    registry.addResourceHandler("/js/**").addResourceLocations("classpath:/static/js/");
-    registry.addResourceHandler("/images/**").addResourceLocations("classpath:/static/images/");
-    registry.addResourceHandler("/client/**").addResourceLocations("classpath:/static/client/");
-     // ➕ Trường hợp ảnh upload từ người dùng (lưu ở thư mục ngoài)
-    String uploadDir = System.getProperty("user.dir") + "/uploads/images/";
-    registry.addResourceHandler("/images/**")
-            .addResourceLocations("file:" + uploadDir);
-  }
-
+    // Thêm Spring Security Dialect để dùng sec:authorize trong Thymeleaf
+    @Bean
+    public SpringSecurityDialect springSecurityDialect() {
+        return new SpringSecurityDialect();
+    }
 }
