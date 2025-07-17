@@ -28,6 +28,7 @@ public SecurityFilterChain securityFilterChain(HttpSecurity http, CustomSuccessH
             .requestMatchers("/products/**").permitAll()
             .requestMatchers("/admin/**").hasRole("ADMIN")
             .requestMatchers("/cart/**", "/checkout/**").authenticated()
+            .requestMatchers("/account/**").authenticated()
             .anyRequest().permitAll()
         )
             .formLogin(form -> form

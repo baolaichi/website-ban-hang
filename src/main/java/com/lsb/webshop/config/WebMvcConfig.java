@@ -21,6 +21,7 @@ public class WebMvcConfig implements WebMvcConfigurer {
 
         // Cấu hình đường dẫn tới ảnh người dùng upload
         String uploadDir = System.getProperty("user.dir") + "/uploads/images/";
+        
         registry.addResourceHandler("/images/**")
                 .addResourceLocations("file:" + uploadDir);
     }

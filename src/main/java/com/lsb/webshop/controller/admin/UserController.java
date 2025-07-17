@@ -38,7 +38,7 @@ public class UserController {
 @RequestMapping("/user/create")
 public String getUserPage(Model model) {
     model.addAttribute("newUser", new User());
-    model.addAttribute("roles", userService.getAllRoles()); // bổ sung dòng này
+    model.addAttribute("roles", userService.getAllRoles()); 
     return "/admin/user/create";
 }
 
@@ -49,7 +49,7 @@ public String create(Model model,
                      @RequestParam("avatarFile") MultipartFile file) {
 
     if (newUserBindingResult.hasErrors()) {
-        model.addAttribute("roles", userService.getAllRoles()); // thêm dòng này
+        model.addAttribute("roles", userService.getAllRoles()); 
         return "/admin/user/create";
     }
 
@@ -60,8 +60,8 @@ public String create(Model model,
         lsb.setAvatar(avatar);
         lsb.setPassword(hashPassword);
 
-        // Không nên lấy bằng role.getName() vì binding đã chọn role theo id
-        Role selectedRole = userService.getRoleById(lsb.getRole().getId()); // sửa lại dòng này
+        
+        Role selectedRole = userService.getRoleById(lsb.getRole().getId()); 
         lsb.setRole(selectedRole);
 
         userService.SaveUser(lsb);
@@ -70,12 +70,12 @@ public String create(Model model,
 
     } catch (IllegalArgumentException e) {
         model.addAttribute("errorMessage", e.getMessage());
-        model.addAttribute("roles", userService.getAllRoles()); // thêm dòng này
+        model.addAttribute("roles", userService.getAllRoles()); 
         return "/admin/user/create";
 
     } catch (Exception e) {
         model.addAttribute("errorMessage", "Có lỗi xảy ra khi tạo người dùng.");
-        model.addAttribute("roles", userService.getAllRoles()); // thêm dòng này
+        model.addAttribute("roles", userService.getAllRoles()); 
         return "/admin/user/create";
     }
 }

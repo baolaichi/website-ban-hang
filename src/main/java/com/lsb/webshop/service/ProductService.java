@@ -194,7 +194,7 @@ public class ProductService {
     }
 
     @Transactional
-public void updateProductQuantity(String email, Long productId, int quantity) {
+    public void updateProductQuantity(String email, Long productId, int quantity) {
     if (quantity < 1) {
         throw new IllegalArgumentException("Số lượng phải lớn hơn hoặc bằng 1");
     }
@@ -246,11 +246,50 @@ public void updateProductQuantity(String email, Long productId, int quantity) {
         cart.setSum((int) totalQuantity);
         cartRepository.save(cart);
     }
-}
+    }
 
-}
+    }
 
-    
+    public void removeProductCart(long cartDetailId, HttpSession session) {
+    try {
+        log.info("Bắt đầu xóa sản phẩm trong giỏ hàng với cartDetailId={}", cartDetailId);
+
+        Optional<CartDetail> cartDetailOptional = cartDetailRepository.findById(cartDetailId);
+
+        if (cartDetailOptional.isEmpty()) {
+            log.warn("Không tìm thấy chi tiết giỏ hàng với ID = {}. Hủy thao tác xóa.", cartDetailId);
+            return;
+        }
+
+        CartDetail cartDetail = cartDetailOptional.get();
+        Cart cart = cartDetail.getCart();
+
+        cartDetailRepository.deleteById(cartDetailId);
+        log.info("Đã xóa thành công CartDetail có ID = {}", cartDetailId);
+
+        if (cart != null) {
+            int currentSum = cart.getSum();
+            log.debug("Số lượng sản phẩm hiện tại trong giỏ là {}", currentSum);
+
+            if (currentSum > 1) {
+                cart.setSum(currentSum - 1);
+                cartRepository.save(cart);
+                session.setAttribute("sum", cart.getSum());
+                log.info("Đã cập nhật số lượng sản phẩm trong giỏ xuống còn {} cho giỏ hàng có ID = {}", cart.getSum(), cart.getId());
+            } else {
+                cartRepository.deleteById(cart.getId());
+                session.setAttribute("sum", 0);
+                log.info("Giỏ hàng có ID = {} đã bị xóa do không còn sản phẩm nào.", cart.getId());
+            }
+        } else {
+            log.error("Không thể xác định giỏ hàng tương ứng với CartDetail ID = {}", cartDetailId);
+        }
+
+    } catch (Exception e) {
+        log.error("Lỗi khi xóa sản phẩm khỏi giỏ hàng với CartDetail ID = {}: {}", cartDetailId, e.getMessage(), e);
+    }
+    }
+
 
     }
 

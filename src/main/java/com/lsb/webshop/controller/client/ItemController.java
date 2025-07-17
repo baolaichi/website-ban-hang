@@ -89,8 +89,8 @@ public class ItemController {
     }
 
     @PostMapping(value = "/cart/update", produces = MediaType.APPLICATION_JSON_VALUE)
-@ResponseBody
-public ResponseEntity<Map<String, Object>> updateQuantity(@RequestParam("productId") Long productId,
+    @ResponseBody
+    public ResponseEntity<Map<String, Object>> updateQuantity(@RequestParam("productId") Long productId,
                                                            @RequestParam("quantity") int quantity,
                                                            HttpServletRequest request) {
     HttpSession session = request.getSession(false);
@@ -136,6 +136,15 @@ public ResponseEntity<Map<String, Object>> updateQuantity(@RequestParam("product
         error.put("message", "Cập nhật thất bại: " + e.getMessage());
         return ResponseEntity.badRequest().body(error);
     }
-}
+    }
 
+    @PostMapping("/delete-product-from-cart/{id}")
+    public String deleteProductFromCart(@PathVariable long id, HttpServletRequest request) {
+        HttpSession session = request.getSession(false);
+        long productId = id;
+
+        this.productService.removeProductCart(productId, session);
+
+        return "redirect:/cart";
+}
 }

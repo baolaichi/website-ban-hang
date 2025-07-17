@@ -9,6 +9,8 @@ import org.springframework.stereotype.Service;
 import com.lsb.webshop.domain.Role;
 import com.lsb.webshop.domain.User;
 import com.lsb.webshop.domain.dto.registerDTO;
+import com.lsb.webshop.domain.dto.UserDTO;
+import com.lsb.webshop.mapper.UserMapper;
 import com.lsb.webshop.repository.RoleRepository;
 import com.lsb.webshop.repository.UserRepository;
 
@@ -21,11 +23,13 @@ public class UserService {
     private final UserRepository userRepository;
     private final RoleRepository roleRepository;
     private final PasswordEncoder passwordEncoder;
+    private final UserMapper userMapper;
 
-    public UserService(UserRepository userRepository, RoleRepository roleRepository, PasswordEncoder passwordEncoder) {
+    public UserService(UserRepository userRepository, RoleRepository roleRepository, PasswordEncoder passwordEncoder, UserMapper userMapper) {
         this.userRepository = userRepository;
         this.roleRepository = roleRepository;
         this.passwordEncoder = passwordEncoder;
+        this.userMapper = userMapper;
     }
 
     public User findById(long id) {
@@ -147,6 +151,25 @@ public class UserService {
     public User findByUsername(String email) {
     return userRepository.findByEmail(email)
             .orElseThrow(() -> new UsernameNotFoundException("Không tìm thấy người dùng: " + email));
+    }
+
+    public UserDTO getUserByUserName(String emai){
+        User user = userRepository.findByEmail(emai).orElseThrow(() -> new UsernameNotFoundException("Không tìm thấy người dùng: " + emai));
+        return userMapper.toDto(user);
+    }
+
+    public UserDTO updateAccount(UserDTO userDto){
+        User user = userRepository.findByEmail(userDto.getEmail()).orElseThrow(() -> new RuntimeException("Người dùng không tồn tại"));
+
+        user.setFullName(userDto.getFullName());
+        user.setEmail(userDto.getEmail());
+        user.setPhone(userDto.getPhoneNumber());
+        user.setAddress(userDto.getAddress());
+        user.setAvatar(userDto.getAvatarUrl());
+
+        this.userRepository.save(user);
+
+        return userMapper.toDto(user);
     }
 
 }
