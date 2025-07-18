@@ -158,8 +158,12 @@ public class UserService {
         return userMapper.toDto(user);
     }
 
-    public UserDTO updateAccount(UserDTO userDto){
-        User user = userRepository.findByEmail(userDto.getEmail()).orElseThrow(() -> new RuntimeException("Người dùng không tồn tại"));
+    public UserDTO updateAccount(UserDTO userDto) {
+    try {
+        System.out.println("Cập nhật tài khoản cho email: " + userDto.getEmail());
+
+        User user = userRepository.findByEmail(userDto.getEmail())
+                .orElseThrow(() -> new RuntimeException("Người dùng không tồn tại với email: " + userDto.getEmail()));
 
         user.setFullName(userDto.getFullName());
         user.setEmail(userDto.getEmail());
@@ -167,10 +171,18 @@ public class UserService {
         user.setAddress(userDto.getAddress());
         user.setAvatar(userDto.getAvatarUrl());
 
-        this.userRepository.save(user);
+        userRepository.save(user);
+
+        System.out.println("Cập nhật thành công cho người dùng: " + userDto.getEmail());
 
         return userMapper.toDto(user);
+    } catch (Exception e) {
+        System.err.println("Lỗi khi cập nhật tài khoản: " + e.getMessage());
+        e.printStackTrace();
+        throw new RuntimeException("Đã xảy ra lỗi khi cập nhật tài khoản.");
     }
+}
+
 
 }
 
