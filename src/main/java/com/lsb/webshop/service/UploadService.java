@@ -8,9 +8,6 @@ import java.io.IOException;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 
-import com.lsb.webshop.domain.User;
-import com.lsb.webshop.domain.dto.UserDTO;
-import com.lsb.webshop.repository.UserRepository;
 
 import jakarta.servlet.ServletContext;
 import lombok.extern.slf4j.Slf4j;

@@ -38,7 +38,7 @@ public class ItemController {
     }
 
     @GetMapping("/product/{id}")
-    public String getMethodName(Model model, @PathVariable long id) {
+    public String showProductDetail(Model model, @PathVariable long id) {
         Product pr = this.productService.getByIdProduct(id).get();
         model.addAttribute("product", pr);
         model.addAttribute("id", id);
@@ -84,6 +84,7 @@ public class ItemController {
 
     model.addAttribute("cartDetails", cartDetails);
     model.addAttribute("totalPrice", totalPrice);
+    model.addAttribute("cart", cart);
 
     return "client/cart/show";
     }
