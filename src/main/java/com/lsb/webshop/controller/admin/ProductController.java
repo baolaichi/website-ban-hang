@@ -1,7 +1,9 @@
 package com.lsb.webshop.controller.admin;
 
 
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 
 import org.springframework.stereotype.Controller;
@@ -16,10 +18,13 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.multipart.MultipartFile;
 import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 
+import com.lsb.webshop.domain.Cart;
 import com.lsb.webshop.domain.Product;
 import com.lsb.webshop.service.CategoryService;
 import com.lsb.webshop.service.ProductService;
 import com.lsb.webshop.service.UploadService;
+import com.lsb.webshop.service.UserService;
+import com.lsb.webshop.domain.User;
 
 import jakarta.validation.Valid;
 

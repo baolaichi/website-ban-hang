@@ -20,6 +20,7 @@ import com.lsb.webshop.domain.Cart;
 import com.lsb.webshop.domain.CartDetail;
 import com.lsb.webshop.domain.Product;
 import com.lsb.webshop.domain.User;
+import com.lsb.webshop.service.CartService;
 import com.lsb.webshop.service.ProductService;
 import com.lsb.webshop.service.UserService;
 
@@ -31,10 +32,12 @@ public class ItemController {
 
     private  ProductService productService;
     private UserService userService;
+    private CartService cartService;
     
-    public ItemController(ProductService productService, UserService userService) {
+    public ItemController(ProductService productService, UserService userService, CartService cartService) {
         this.productService = productService;
         this.userService = userService;
+        this.cartService = cartService;
     }
 
     @GetMapping("/product/{id}")
@@ -91,9 +94,11 @@ public class ItemController {
 
     @PostMapping(value = "/cart/update", produces = MediaType.APPLICATION_JSON_VALUE)
     @ResponseBody
-    public ResponseEntity<Map<String, Object>> updateQuantity(@RequestParam("productId") Long productId,
-                                                           @RequestParam("quantity") int quantity,
-                                                           HttpServletRequest request) {
+    public ResponseEntity<Map<String, Object>> updateQuantity(
+        @RequestParam("productId") Long productId,
+        @RequestParam("quantity") int quantity,
+        HttpServletRequest request) {
+
     HttpSession session = request.getSession(false);
     if (session == null || session.getAttribute("email") == null) {
         Map<String, Object> error = new HashMap<>();
@@ -103,49 +108,13 @@ public class ItemController {
 
     String email = (String) session.getAttribute("email");
 
-    try {
-        // Gọi service xử lý cập nhật số lượng sản phẩm trong giỏ hàng của user
-        productService.updateProductQuantity(email, productId, quantity);
+    Map<String, Object> result = cartService.updateQuantity(email, productId, quantity);
 
-        // Lấy giỏ hàng mới sau khi cập nhật để tính tổng tiền
-        User currentUser = userService.findByUsername(email);
-        Cart cart = productService.fetchByUser(currentUser);
-
-    
-
-        if (cart == null) {
-            Map<String, Object> error = new HashMap<>();
-            error.put("message", "Giỏ hàng không tồn tại");
-            return ResponseEntity.badRequest().body(error);
-        }
-
-        double totalPrice = 0;
-        if (cart.getCartDetails() != null) {
-            for (CartDetail detail : cart.getCartDetails()) {
-                totalPrice += detail.getPrice() * detail.getQuantity();
-            }
-        }
-
-        Map<String, Object> response = new HashMap<>();
-        response.put("message", "Cập nhật thành công");
-        response.put("totalPrice", totalPrice);
-
-        return ResponseEntity.ok(response);
-
-    } catch (Exception e) {
-        Map<String, Object> error = new HashMap<>();
-        error.put("message", "Cập nhật thất bại: " + e.getMessage());
-        return ResponseEntity.badRequest().body(error);
+    if (result.get("message").toString().startsWith("Cập nhật thành công")) {
+        return ResponseEntity.ok(result);
+    } else {
+        return ResponseEntity.badRequest().body(result);
     }
     }
 
-    @PostMapping("/delete-product-from-cart/{id}")
-    public String deleteProductFromCart(@PathVariable long id, HttpServletRequest request) {
-        HttpSession session = request.getSession(false);
-        long productId = id;
-
-        this.productService.removeProductCart(productId, session);
-
-        return "redirect:/cart";
-}
 }

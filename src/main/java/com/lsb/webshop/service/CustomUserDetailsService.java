@@ -65,40 +65,44 @@ public class CustomUserDetailsService implements UserDetailsService {
     }
 
     public User SaveUser(User user) {
-        String fullName = user.getFullName();
-        String email = user.getEmail();
+    String fullName = user.getFullName();
+    String email = user.getEmail();
 
-        log.info("[UserService] SaveUser() - Bắt đầu lưu user: fullName='{}', email='{}'", fullName, email);
+    log.info("[UserService] SaveUser() - Bắt đầu lưu user: fullName='{}', email='{}'", fullName, email);
 
-        try {
-            boolean isExisted;
-
-            if (user.getId() != null) {
-                isExisted = userRepository.existsByFullNameAndIdNot(fullName, user.getId()) ||
-                            userRepository.existsByEmailAndIdNot(email, user.getId());
-            } else {
-                isExisted = userRepository.existsByFullName(fullName) ||
-                            userRepository.existsByEmail(email);
-            }
-
-            if (isExisted) {
-                log.warn("[UserService] SaveUser() - Tên hoặc email đã tồn tại: fullName='{}', email='{}'", fullName, email);
-                throw new IllegalArgumentException("Tên hoặc email người dùng đã tồn tại");
-            }
-
-            User savedUser = userRepository.save(user);
-            log.info("[UserService] SaveUser() - Lưu user thành công: ID={}, fullName='{}'", savedUser.getId(), savedUser.getFullName());
-            return savedUser;
-
-        } catch (IllegalArgumentException e) {
-            log.error("[UserService] SaveUser() - Lỗi dữ liệu: {}", e.getMessage());
-            throw e;
-
-        } catch (Exception e) {
-            log.error("[UserService] SaveUser() - Lỗi hệ thống khi lưu user: {}", e.getMessage(), e);
-            throw new RuntimeException("Đã xảy ra lỗi khi lưu người dùng, vui lòng thử lại sau.");
+    try {
+        // Validate null
+        if (email == null || email.isBlank()) {
+            throw new IllegalArgumentException("Email không được để trống");
         }
+
+        boolean isEmailExisted;
+
+        if (user.getId() != null) {
+            isEmailExisted = userRepository.existsByEmailAndIdNot(email, user.getId());
+        } else {
+            isEmailExisted = userRepository.existsByEmail(email);
+        }
+
+        if (isEmailExisted) {
+            log.warn("[UserService] SaveUser() - Email đã tồn tại: {}", email);
+            throw new IllegalArgumentException("Email người dùng đã tồn tại");
+        }
+
+        User savedUser = userRepository.save(user);
+        log.info("[UserService] SaveUser() - Lưu user thành công: ID={}, fullName='{}'", savedUser.getId(), savedUser.getFullName());
+        return savedUser;
+
+    } catch (IllegalArgumentException e) {
+        log.warn("[UserService] SaveUser() - Lỗi dữ liệu: {}", e.getMessage());
+        throw e;
+
+    } catch (Exception e) {
+        log.error("[UserService] SaveUser() - Lỗi hệ thống khi lưu user: {}", e.getMessage(), e);
+        throw new RuntimeException("Đã xảy ra lỗi khi lưu người dùng, vui lòng thử lại sau.");
     }
+    }
+
 
     @Transactional
     public void deleteUser(Long id) {
