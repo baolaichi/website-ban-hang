@@ -6,6 +6,7 @@ import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.ModelAttribute;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.servlet.ModelAndView;
 import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 
 import com.lsb.webshop.domain.Category;
@@ -25,21 +26,27 @@ public class CategoryController {
     }
 
     @GetMapping("/add")
-    public String showAddCategoryForm(Model model) {
-        model.addAttribute("category", new Category());
-        return "admin/category/add";  // Tên template Thymeleaf: templates/category/add.html
+    public ModelAndView showAddCategoryForm() {
+        ModelAndView modelAndView = new ModelAndView("admin/category/add");
+        modelAndView.addObject("category", new Category());
+        return modelAndView;  // Tên template Thymeleaf: templates/category/add.html
     }
 
-    @PostMapping("/add")
-    public String saveCategory(@ModelAttribute Category category,
-                               RedirectAttributes redirectAttributes) {
-        try {
-            Category saved = categoryService.saveCategory(category);
-            redirectAttributes.addFlashAttribute("success", "Thêm danh mục thành công: " + saved.getName());
-            return "redirect:/admin/categories/add";
-        } catch (Exception e) {
-            redirectAttributes.addFlashAttribute("error", "Thêm danh mục thất bại: " + e.getMessage());
-            return "redirect:/admin/categories/add";
-        }
+   @PostMapping("/add")
+public ModelAndView saveCategory(@ModelAttribute Category category) {
+    ModelAndView mav = new ModelAndView();
+
+    try {
+        Category saved = categoryService.saveCategory(category);
+        mav.addObject("success", "Thêm danh mục thành công: " + saved.getName());
+    } catch (Exception e) {
+        mav.addObject("error", "Thêm danh mục thất bại: " + e.getMessage());
     }
+
+    // Điều hướng lại form thêm (giống redirect)
+    mav.setViewName("redirect:/admin/categories/add");
+
+    return mav;
+}
+
 }

@@ -1,18 +1,25 @@
 package com.lsb.webshop.service;
 
+import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
 import java.util.stream.Collectors;
 
 import org.springframework.stereotype.Service;
+import org.springframework.web.multipart.MultipartFile;
 
 import com.lsb.webshop.domain.Cart;
 import com.lsb.webshop.domain.CartDetail;
+import com.lsb.webshop.domain.Order;
+import com.lsb.webshop.domain.OrderDetail;
 import com.lsb.webshop.domain.Product;
 import com.lsb.webshop.domain.User;
 import com.lsb.webshop.repository.CartDetailRepository;
 import com.lsb.webshop.repository.CartRepository;
+import com.lsb.webshop.repository.OrderDetailRepository;
+import com.lsb.webshop.repository.OrderRepository;
 import com.lsb.webshop.repository.ProductRepository;
+
 
 import jakarta.servlet.http.HttpSession;
 import jakarta.transaction.Transactional;
@@ -26,15 +33,24 @@ public class ProductService {
     private final CartRepository cartRepository;
     private final CartDetailRepository cartDetailRepository;
     private final UserService userService;
+    private final OrderRepository orderRepository;
+    private final OrderDetailRepository orderDetailRepository;
+    private final UploadService uploadService;
 
     public ProductService(ProductRepository productRepository,
                         CartRepository cartRepository,
                         CartDetailRepository cartDetailRepository,
-                        UserService userService) {
+                        UserService userService,
+                        OrderRepository orderRepository,
+                        OrderDetailRepository orderDetailRepository,
+                        UploadService uploadService) {
         this.productRepository = productRepository;
         this.cartRepository = cartRepository;
         this.cartDetailRepository = cartDetailRepository;
         this.userService = userService;
+        this.orderRepository = orderRepository;
+        this.orderDetailRepository = orderDetailRepository;
+        this.uploadService = uploadService;
     }
 
     // Lưu hoặc cập nhật sản phẩm
@@ -132,11 +148,16 @@ public class ProductService {
         return factories;
     }
 
-    // Tìm kiếm sản phẩm theo tên
     public List<Product> searchProducts(String keyword) {
-        log.debug("[searchProducts] Tìm kiếm sản phẩm với từ khóa: '{}'", keyword);
-        List<Product> results = productRepository.findByNameContainingIgnoreCase(keyword);
-        log.info("[searchProducts] Tìm thấy {} sản phẩm với từ khóa '{}'", results.size(), keyword);
+        if (keyword == null || keyword.trim().length() < 2) {
+        log.warn("[searchProducts] Từ khóa quá ngắn hoặc null: '{}'", keyword);
+        return Collections.emptyList();
+        }
+        String trimmed = keyword.trim();
+        log.debug("[searchProducts] Tìm kiếm sản phẩm với từ khóa: '{}'", trimmed);
+        List<Product> results = productRepository.findByNameContainingIgnoreCase(trimmed);
+        log.info("[searchProducts] Tìm thấy {} sản phẩm với từ khóa '{}'", results.size(), trimmed);
+
         return results;
     }
 
@@ -291,8 +312,71 @@ public class ProductService {
     }
 
     public void updateCartBeforeCheckout(List<CartDetail> cartDetails) {
-        
+        for(CartDetail cartDetail : cartDetails){
+            Optional<CartDetail> cdOptional = this.cartDetailRepository.findById(cartDetail.getId());
+            if(cdOptional.isPresent()){
+                CartDetail currentCartDetail = cdOptional.get();
+                currentCartDetail.setQuantity(cartDetail.getQuantity());
+                this.cartDetailRepository.save(currentCartDetail);
+            }
+        }
     }
+
+    public void handlePlaceOrder(User user, HttpSession session,
+                                String receiverName, String receiverAddress,
+                                String receiverPhone) {
+       Order order = new Order();
+       order.setUser(user);
+       order.setReceiverName(receiverName);
+       order.setReceiverAddress(receiverAddress);
+       order.setReceiverPhone(receiverPhone);
+
+       order = this.orderRepository.save(order);
+         log.info("[handlePlaceOrder] Đặt hàng thành công cho người dùng: {}", user.getEmail());
+
+         Cart cart = this.cartRepository.findByUser(user);
+         if(cart != null){
+            List<CartDetail> cartDetails = cart.getCartDetails();
+            if(cartDetails != null){
+                for(CartDetail cartDetail : cartDetails){
+                    OrderDetail orderDetail = new OrderDetail();
+                    orderDetail.setOrder(order);
+                    orderDetail.setProduct(cartDetail.getProduct());
+                    orderDetail.setPrice(cartDetail.getPrice());
+                    orderDetail.setQuantity(cartDetail.getQuantity());
+
+                    this.orderDetailRepository.save(orderDetail);
+                }
+
+                 for (CartDetail cd : cartDetails) {
+                    this.cartDetailRepository.deleteById(cd.getId());
+                }
+
+                this.cartRepository.deleteById(cart.getId());
+
+                
+                session.setAttribute("sum", 0);
+            }
+         }
+    }
+
+    public Product updateProductWithImage(Product product, MultipartFile file) {
+    try {
+        if (file != null && !file.isEmpty()) {
+            String productImg = uploadService.HandleSaveUploadFile(file, "product");
+            product.setImage(productImg);
+        } else {
+            Product oldProduct = getProductById(product.getId());
+            product.setImage(oldProduct.getImage());
+        }
+
+        return SaveProduct(product); // Reuse your existing SaveProduct with validation
+    } catch (Exception e) {
+        log.error("[ProductService] updateProductWithImage - Lỗi khi cập nhật sản phẩm: {}", e.getMessage(), e);
+        throw e; // để controller xử lý
+    }
+}
+
 
     }
 

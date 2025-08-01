@@ -3,14 +3,18 @@ package com.lsb.webshop.controller.client;
 
 import java.security.Principal;
 import java.util.List;
+import java.util.stream.Collectors;
 
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.ModelAttribute;
 import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.ResponseBody;
 
 import com.lsb.webshop.domain.Product;
+import com.lsb.webshop.domain.dto.ProductDTO;
 import com.lsb.webshop.domain.dto.registerDTO;
 import com.lsb.webshop.service.ProductService;
 import com.lsb.webshop.service.UserService;
@@ -45,7 +49,7 @@ public class HomePageController {
     return "client/homepage/show";
     }
 
-        @GetMapping("/products")
+    @GetMapping("/products")
     public String getFullProduct(Model model, HttpSession session, Principal principal){
         List<Product> products = this.productService.getAllActiveProducts();
         model.addAttribute("products", products);
@@ -88,6 +92,19 @@ public class HomePageController {
     @GetMapping("/access-deny")
     public String accessDeniedPage() {
         return "client/auth/deny";
+    }
+
+     @GetMapping("/api/search")
+    @ResponseBody
+    public List<ProductDTO> searchProducts(@RequestParam("keyword") String keyword) {
+        if (keyword == null || keyword.trim().length() < 2) {
+            return List.of();
+        }
+
+        List<Product> products = productService.searchProducts(keyword);
+        return products.stream()
+                .map(product -> new ProductDTO(product.getId(), product.getName(), product.getShortDesc()))
+                .collect(Collectors.toList());
     }
 
 }

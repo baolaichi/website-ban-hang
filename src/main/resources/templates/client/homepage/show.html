@@ -43,16 +43,22 @@
                 <h5 class="modal-title" id="exampleModalLabel">Search by keyword</h5>
                 <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
             </div>
-            <div class="modal-body d-flex align-items-center">
-                <div class="input-group w-75 mx-auto d-flex">
-                    <input type="search" class="form-control p-3" placeholder="keywords" aria-describedby="search-icon-1">
+            
+            <div class="modal-body d-flex align-items-center flex-column">
+                <!-- Input tìm kiếm -->
+                <div class="input-group w-75 mx-auto d-flex mb-4">
+                    <input id="search-keyword" type="search" class="form-control p-3" placeholder="keywords" aria-describedby="search-icon-1">
                     <span id="search-icon-1" class="input-group-text p-3"><i class="fa fa-search"></i></span>
                 </div>
+
+                <!-- Kết quả -->
+                <div id="search-results" class="w-75" style="max-height: 300px; overflow-y: auto;"></div>
             </div>
         </div>
     </div>
 </div>
 <!-- Modal Search End -->
+
 
 <!-- Banner include -->
 <div th:replace="~{client/layout/banner :: banner}"></div>
@@ -137,5 +143,42 @@
 
 <!-- Template Javascript -->
 <script src="/client/js/main.js"></script>
+
+<script>
+    let debounceTimer;
+
+    document.getElementById("search-keyword").addEventListener("input", function () {
+        const keyword = this.value.trim();
+        clearTimeout(debounceTimer);
+
+        debounceTimer = setTimeout(() => {
+            if (keyword.length >= 2) {
+                fetch("/api/search?keyword=" + encodeURIComponent(keyword))
+                    .then(response => response.json())
+                    .then(data => {
+                        const resultsDiv = document.getElementById("search-results");
+
+                        if (!resultsDiv) return;
+
+                        if (data.length === 0) {
+                            resultsDiv.innerHTML = "<p class='text-center text-muted'>Không tìm thấy kết quả</p>";
+                            return;
+                        }
+
+                        resultsDiv.innerHTML = data.map(product => `
+                            <div class="border-bottom py-2">
+                                <a href="/product/${product.id}" class="text-decoration-none text-dark">
+                                    <strong>${product.name}</strong><br/>
+                                    <small>${product.shortDesc}</small>
+                                </a>
+                            </div>
+                        `).join('');
+                    })
+                    .catch(error => console.error("Lỗi tìm kiếm:", error));
+            }
+        }, 500); // Đợi 500ms sau khi ngừng gõ
+    });
+</script>
+
 </body>
 </html>

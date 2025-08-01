@@ -12,10 +12,14 @@ import jakarta.persistence.OneToOne;
 import jakarta.persistence.Table;
 import jakarta.validation.constraints.Min;
 import lombok.Data;
+import lombok.Getter;
+import lombok.Setter;
 
 @Entity
 @Table(name="carts")
 @Data
+@Getter
+@Setter
 public class Cart {
     @Id
     @GeneratedValue(strategy=GenerationType.IDENTITY)
