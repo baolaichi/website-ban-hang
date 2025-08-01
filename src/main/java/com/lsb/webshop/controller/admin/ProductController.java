@@ -1,9 +1,6 @@
 package com.lsb.webshop.controller.admin;
 
-
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
 import java.util.Optional;
 
 import org.springframework.stereotype.Controller;
@@ -18,17 +15,16 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.multipart.MultipartFile;
 import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 
-import com.lsb.webshop.domain.Cart;
 import com.lsb.webshop.domain.Product;
 import com.lsb.webshop.service.CategoryService;
 import com.lsb.webshop.service.ProductService;
 import com.lsb.webshop.service.UploadService;
-import com.lsb.webshop.service.UserService;
-import com.lsb.webshop.domain.User;
 
 import jakarta.validation.Valid;
+import lombok.extern.slf4j.Slf4j;
 
 @Controller
+@Slf4j
 @RequestMapping("/admin")
 public class ProductController {
     private final UploadService uploadService;
@@ -56,7 +52,7 @@ public class ProductController {
     }
 
     @PostMapping("/product/create")
-public String create(Model model, @ModelAttribute("newProduct") @Valid Product sp,
+    public String create(Model model, @ModelAttribute("newProduct") @Valid Product sp,
         BindingResult productBindingResult,
         @RequestParam("productFile") MultipartFile file) {
 
@@ -68,7 +64,6 @@ public String create(Model model, @ModelAttribute("newProduct") @Valid Product s
     try {
         String productImg = this.uploadService.HandleSaveUploadFile(file, "product");
         sp.setImage(productImg);
-
         this.productService.SaveProduct(sp); // có thể ném IllegalArgumentException
         return "redirect:/admin/product";
 
@@ -88,9 +83,9 @@ public String create(Model model, @ModelAttribute("newProduct") @Valid Product s
         return "/admin/product/detail";
     }
 
-// Hiển thị trang xác nhận xóa
-@GetMapping("/product/delete/{id}")
-public String confirmDeleteProduct(@PathVariable Long id, Model model) {
+    // Hiển thị trang xác nhận xóa
+    @GetMapping("/product/delete/{id}")
+    public String confirmDeleteProduct(@PathVariable Long id, Model model) {
     Optional<Product> productOpt = productService.getByIdAndNotDeleted(id); // dùng soft-delete filter
 
     if (productOpt.isPresent()) {
@@ -104,8 +99,8 @@ public String confirmDeleteProduct(@PathVariable Long id, Model model) {
 
 
     // Xử lý xóa sản phẩm (soft delete)
-@PostMapping("/product/delete")
-public String softDeleteProduct(@ModelAttribute("deleteProduct") Product product, RedirectAttributes redirectAttributes) {
+    @PostMapping("/product/delete")
+    public String softDeleteProduct(@ModelAttribute("deleteProduct") Product product, RedirectAttributes redirectAttributes) {
     try {
         productService.softDeleteProduct(product.getId());
         redirectAttributes.addFlashAttribute("successMessage", "Đã xóa sản phẩm thành công.");
@@ -118,8 +113,8 @@ public String softDeleteProduct(@ModelAttribute("deleteProduct") Product product
 }
 
 
-@GetMapping("/product/update/{id}")
-public String updateProduct(Model model, @PathVariable Long id) {
+    @GetMapping("/product/update/{id}")
+    public String updateProduct(Model model, @PathVariable Long id) {
     Optional<Product> productOpt = productService.getByIdProduct(id);
     if (productOpt.isPresent()) {
         model.addAttribute("updateProduct", productOpt.get());
@@ -129,12 +124,11 @@ public String updateProduct(Model model, @PathVariable Long id) {
     }
 }
 
-
     @PostMapping("/product/update")
-public String postUpdateProduct(Model model,
-                     @ModelAttribute("updateProduct") @Valid Product sp,
-                     BindingResult productBindingResult,
-                     @RequestParam("lsb") MultipartFile file) {
+    public String postUpdateProduct(Model model,
+                @ModelAttribute("updateProduct") @Valid Product sp,
+                BindingResult productBindingResult,
+                @RequestParam("lsb") MultipartFile file) {
 
     if (productBindingResult.hasErrors()) {
         model.addAttribute("categories", categoryService.getAllCategorys());
@@ -142,21 +136,22 @@ public String postUpdateProduct(Model model,
     }
 
     try {
-        // Giữ ảnh cũ nếu không chọn file mới
-        if (file != null && !file.isEmpty()) {
-            String productImg = uploadService.HandleSaveUploadFile(file, "product");
-            sp.setImage(productImg);
-        } else {
-            // lấy lại ảnh cũ từ DB
-            Product oldProduct = productService.getProductById(sp.getId());
-            sp.setImage(oldProduct.getImage());
-        }
-
-        productService.SaveProduct(sp);
+        productService.updateProductWithImage(sp, file);
         return "redirect:/admin/product";
 
     } catch (IllegalArgumentException e) {
-        productBindingResult.rejectValue("name", "error.updateProduct", e.getMessage());
+        String[] parts = e.getMessage().split("\\|", 2);
+        if (parts.length == 2) {
+            productBindingResult.rejectValue(parts[0], "error.updateProduct", parts[1]);
+        } else {
+            productBindingResult.reject("error.updateProduct", e.getMessage());
+        }
+        model.addAttribute("categories", categoryService.getAllCategorys());
+        return "/admin/product/update";
+
+    } catch (Exception e) {
+        productBindingResult.reject("globalError", "Đã xảy ra lỗi khi cập nhật sản phẩm.");
+        log.error("[ProductController] Lỗi hệ thống: {}", e.getMessage(), e);
         model.addAttribute("categories", categoryService.getAllCategorys());
         return "/admin/product/update";
     }

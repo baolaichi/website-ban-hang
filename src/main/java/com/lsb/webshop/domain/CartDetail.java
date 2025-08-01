@@ -8,10 +8,14 @@ import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
 import jakarta.persistence.Table;
 import lombok.Data;
+import lombok.Getter;
+import lombok.Setter;
 
 @Entity
 @Table(name = "cart_details")
 @Data
+@Getter
+@Setter
 public class CartDetail {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)

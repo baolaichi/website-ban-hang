@@ -11,6 +11,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.ModelAttribute;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestParam;
@@ -53,12 +54,9 @@ public class ItemController {
     @PostMapping("/add-product-to-cart/{id}")
     public String addProductToCart(@PathVariable long id, HttpServletRequest request){
         HttpSession session = request.getSession(false);
-
         long productId = id;
         String email = (String) session.getAttribute("email");
-
         this.productService.addProductToCart(email, productId, session);
-
         return "redirect:/";
     }
 
@@ -68,27 +66,21 @@ public class ItemController {
     if (session == null || session.getAttribute("id") == null) {
         return "redirect:/login"; 
     }
-
     long id = (long) session.getAttribute("id");
     User currentUser = new User();
     currentUser.setId(id);
-
     Cart cart = productService.fetchByUser(currentUser);
     List<CartDetail> cartDetails = new ArrayList<>();
-
     if (cart != null && cart.getCartDetails() != null) {
         cartDetails = cart.getCartDetails();
     }
-
     double totalPrice = 0;
     for (CartDetail detail : cartDetails) {
         totalPrice += detail.getPrice() * detail.getQuantity();
     }
-
     model.addAttribute("cartDetails", cartDetails);
     model.addAttribute("totalPrice", totalPrice);
     model.addAttribute("cart", cart);
-
     return "client/cart/show";
     }
 
@@ -98,23 +90,64 @@ public class ItemController {
         @RequestParam("productId") Long productId,
         @RequestParam("quantity") int quantity,
         HttpServletRequest request) {
-
-    HttpSession session = request.getSession(false);
-    if (session == null || session.getAttribute("email") == null) {
-        Map<String, Object> error = new HashMap<>();
-        error.put("message", "Bạn cần đăng nhập để cập nhật giỏ hàng");
-        return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(error);
+    Map<String, Object> response = cartService.handleUpdateQuantity(request, productId, quantity);
+    HttpStatus status = (HttpStatus) response.getOrDefault("status", HttpStatus.OK);
+    response.remove("status");
+    return ResponseEntity.status(status).body(response);
     }
 
-    String email = (String) session.getAttribute("email");
 
-    Map<String, Object> result = cartService.updateQuantity(email, productId, quantity);
+    @GetMapping("/checkout")
+    public String getCheckoutPage(Model model, HttpServletRequest request){
+        User currentUser = new User();
+        HttpSession session = request.getSession(false);
+        long id = (long) session.getAttribute("id");
+        currentUser.setId(id);
+        Cart cart = this.productService.fetchByUser(currentUser);
+        List<CartDetail> cartDetails = cart == null ? new ArrayList<CartDetail>() : cart.getCartDetails();
+        double totalPrice = 0;
+        for (CartDetail detail : cartDetails) {
+            totalPrice += detail.getPrice() * detail.getQuantity();
+        }
 
-    if (result.get("message").toString().startsWith("Cập nhật thành công")) {
-        return ResponseEntity.ok(result);
-    } else {
-        return ResponseEntity.badRequest().body(result);
+        model.addAttribute("cartDetail", cartDetails);
+        model.addAttribute("totalPrice", totalPrice);
+        return "client/cart/checkout";
     }
+
+    @PostMapping("/confirm-checkout")
+    public String getCheckOutPage(@ModelAttribute("cart") Cart cart){
+        List<CartDetail> cartDetails = cart == null ? new ArrayList<>() : cart.getCartDetails();
+        this.productService.updateCartBeforeCheckout(cartDetails);
+        return "redirect:/checkout";
     }
+
+    @PostMapping("/place-order")
+    public String handlePlaceOrder(
+            HttpServletRequest request,
+            @RequestParam("receiverName") String receiverName,
+            @RequestParam("receiverAddress") String receiverAddress,
+            @RequestParam("receiverPhone") String receiverPhone) {
+            User currentUser = new User();
+
+        HttpSession session = request.getSession(false);
+        long id = (long) session.getAttribute("id");
+        currentUser.setId(id);
+        this.productService.handlePlaceOrder(currentUser, session, receiverName, receiverAddress, receiverPhone);
+        return "redirect:/thanks";
+    }
+
+    @GetMapping("/thanks")
+    public String getThankYouPage(Model model) {
+        return "client/cart/thanks";
+    }
+
+    @PostMapping("/delete-product-from-cart/{id}")
+    public String deleteProductFromCart(@PathVariable long id, HttpServletRequest request) {
+        HttpSession session = request.getSession(false);
+        long productId = id;
+        this.productService.removeProductCart(productId, session);
+        return "redirect:/cart";
+}
 
 }

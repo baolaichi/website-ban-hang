@@ -17,6 +17,9 @@ import com.lsb.webshop.repository.UserRepository;
 import jakarta.transaction.Transactional;
 import lombok.extern.slf4j.Slf4j;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 @Slf4j
 @Service
 public class UserService {
@@ -24,6 +27,7 @@ public class UserService {
     private final RoleRepository roleRepository;
     private final PasswordEncoder passwordEncoder;
     private final UserMapper userMapper;
+    private static final Logger log = LoggerFactory.getLogger(UserService.class);
 
     public UserService(UserRepository userRepository, RoleRepository roleRepository, PasswordEncoder passwordEncoder, UserMapper userMapper) {
         this.userRepository = userRepository;
@@ -48,41 +52,55 @@ public class UserService {
     }
 
     public User SaveUser(User user) {
-    String email = user.getEmail();
+        String email = user.getEmail();
 
-    log.info("[UserService] SaveUser() - Bắt đầu lưu user: email='{}'", email);
+        log.info("[UserService] SaveUser() - Bắt đầu lưu user: email='{}'", email);
 
-    try {
-        if (email == null || email.isBlank()) {
-            throw new IllegalArgumentException("Email không được để trống");
+        try {
+            if (email == null || email.isBlank()) {
+                throw new IllegalArgumentException("Email không được để trống");
+            }
+
+            boolean isExisted;
+
+            if (user.getId() != null) {
+                isExisted = userRepository.existsByEmailAndIdNot(email, user.getId());
+            } else {
+                isExisted = userRepository.existsByEmail(email);
+            }
+
+            if (isExisted) {
+                log.warn("[UserService] SaveUser() - Email đã tồn tại: {}", email);
+                throw new IllegalArgumentException("Email người dùng đã tồn tại");
+            }
+
+            User savedUser = userRepository.save(user);
+            log.info("[UserService] SaveUser() - Lưu user thành công: ID={}, email='{}'", savedUser.getId(), savedUser.getEmail());
+            return savedUser;
+
+        } catch (IllegalArgumentException e) {
+            StackTraceElement element = e.getStackTrace()[0];
+            log.warn("[UserService] SaveUser() - Lỗi dữ liệu: {} - {} tại {}.{}(): dòng {}",
+                    e.getClass().getSimpleName(), 
+                    e.getMessage(), 
+                    element.getClassName(), 
+                    element.getMethodName(), 
+                    element.getLineNumber());
+            throw e;
+
+        } catch (Exception e) {
+            StackTraceElement element = e.getStackTrace()[0];
+            log.error("[UserService] SaveUser() - Lỗi hệ thống: {} - {} tại {}.{}(): dòng {}",
+                    e.getClass().getSimpleName(), 
+                    e.getMessage(), 
+                    element.getClassName(), 
+                    element.getMethodName(), 
+                    element.getLineNumber(), 
+                    e); // vẫn truyền e để log stack trace đầy đủ
+            throw new RuntimeException("Đã xảy ra lỗi khi lưu người dùng, vui lòng thử lại sau.");
         }
 
-        boolean isExisted;
-
-        if (user.getId() != null) {
-            isExisted = userRepository.existsByEmailAndIdNot(email, user.getId());
-        } else {
-            isExisted = userRepository.existsByEmail(email);
-        }
-
-        if (isExisted) {
-            log.warn("[UserService] SaveUser() - Email đã tồn tại: {}", email);
-            throw new IllegalArgumentException("Email người dùng đã tồn tại");
-        }
-
-        User savedUser = userRepository.save(user);
-        log.info("[UserService] SaveUser() - Lưu user thành công: ID={}, email='{}'", savedUser.getId(), savedUser.getEmail());
-        return savedUser;
-
-    } catch (IllegalArgumentException e) {
-        log.warn("[UserService] SaveUser() - Lỗi dữ liệu: {}", e.getMessage());
-        throw e;
-
-    } catch (Exception e) {
-        log.error("[UserService] SaveUser() - Lỗi hệ thống khi lưu user: {}", e.getMessage(), e);
-        throw new RuntimeException("Đã xảy ra lỗi khi lưu người dùng, vui lòng thử lại sau.");
     }
-}
 
 
     @Transactional
