@@ -28,6 +28,8 @@ public class Cart {
     @Min(value = 0)
     private int sum;
 
+    private boolean status;
+
     @OneToOne()
     @JoinColumn(name = "user_id")
     private User user;

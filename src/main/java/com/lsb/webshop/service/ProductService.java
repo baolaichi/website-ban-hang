@@ -211,7 +211,7 @@ public class ProductService {
     }
 
     public Cart fetchByUser(User user){
-        return this.cartRepository.findByUser(user);
+        return this.cartRepository.findByUserAndStatus(user, false);
     }
 
     @Transactional
@@ -322,43 +322,51 @@ public class ProductService {
         }
     }
 
-    public void handlePlaceOrder(User user, HttpSession session,
-                                String receiverName, String receiverAddress,
-                                String receiverPhone) {
-       Order order = new Order();
-       order.setUser(user);
-       order.setReceiverName(receiverName);
-       order.setReceiverAddress(receiverAddress);
-       order.setReceiverPhone(receiverPhone);
+    public void handlePlaceOrder(
+            User user, HttpSession session,
+            String receiverName, String receiverAddress, String receiverPhone, Double totalPrice) {
 
-       order = this.orderRepository.save(order);
-         log.info("[handlePlaceOrder] Đặt hàng thành công cho người dùng: {}", user.getEmail());
+        // create order
+        Order order = new Order();
+        order.setUser(user);
+        order.setReceiverName(receiverName);
+        order.setReceiverAddress(receiverAddress);
+        order.setReceiverPhone(receiverPhone);
+        order.setTotalPrice(totalPrice);
+        order = this.orderRepository.save(order);
 
-         Cart cart = this.cartRepository.findByUser(user);
-         if(cart != null){
+        // create orderDetail
+
+        // step 1: get cart by user
+        Cart cart = this.cartRepository.findByUser(user);
+        if (cart != null) {
             List<CartDetail> cartDetails = cart.getCartDetails();
-            if(cartDetails != null){
-                for(CartDetail cartDetail : cartDetails){
+
+            if (cartDetails != null) {
+                for (CartDetail cd : cartDetails) {
                     OrderDetail orderDetail = new OrderDetail();
                     orderDetail.setOrder(order);
-                    orderDetail.setProduct(cartDetail.getProduct());
-                    orderDetail.setPrice(cartDetail.getPrice());
-                    orderDetail.setQuantity(cartDetail.getQuantity());
+                    orderDetail.setProduct(cd.getProduct());
+                    orderDetail.setPrice(cd.getPrice());
+                    orderDetail.setQuantity(cd.getQuantity());
 
                     this.orderDetailRepository.save(orderDetail);
                 }
 
-                 for (CartDetail cd : cartDetails) {
+                // step 2: delete cart_detail and cart
+                for (CartDetail cd : cartDetails) {
                     this.cartDetailRepository.deleteById(cd.getId());
                 }
 
                 this.cartRepository.deleteById(cart.getId());
 
-                
+                // step 3 : update session
                 session.setAttribute("sum", 0);
             }
-         }
+        }
+
     }
+
 
     public Product updateProductWithImage(Product product, MultipartFile file) {
     try {

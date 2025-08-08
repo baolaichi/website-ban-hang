@@ -1,21 +1,21 @@
 package com.lsb.webshop.controller.client;
 
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Controller;
-import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.ModelAttribute;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.ResponseBody;
+import org.springframework.web.servlet.ModelAndView;
 
 import com.lsb.webshop.domain.Cart;
 import com.lsb.webshop.domain.CartDetail;
@@ -34,7 +34,7 @@ public class ItemController {
     private  ProductService productService;
     private UserService userService;
     private CartService cartService;
-    
+
     public ItemController(ProductService productService, UserService userService, CartService cartService) {
         this.productService = productService;
         this.userService = userService;
@@ -42,47 +42,77 @@ public class ItemController {
     }
 
     @GetMapping("/product/{id}")
-    public String showProductDetail(Model model, @PathVariable long id) {
-        Product pr = this.productService.getByIdProduct(id).get();
-        model.addAttribute("product", pr);
-        model.addAttribute("id", id);
-        model.addAttribute("factories", this.productService.getAllFactories());
-        model.addAttribute("products", this.productService.getAllProducts());
-        return "client/product/detail";
+    public ModelAndView showProductDetail(@PathVariable long id) {
+    ModelAndView mav = new ModelAndView("client/product/detail");
+
+    // Lấy sản phẩm theo id (nên kiểm tra tồn tại)
+    Optional<Product> productOptional = this.productService.getByIdProduct(id);
+    if (productOptional.isPresent()) {
+        Product pr = productOptional.get();
+        mav.addObject("product", pr);
+        mav.addObject("id", id);
+        mav.addObject("factories", this.productService.getAllFactories());
+        mav.addObject("products", this.productService.getAllProducts());
+    } else {
+        // Nếu không tìm thấy sản phẩm, có thể chuyển hướng về trang lỗi hoặc danh sách sản phẩm
+        mav.setViewName("redirect:/products"); // hoặc "error/404"
     }
 
+    return mav;
+    }
+
+
     @PostMapping("/add-product-to-cart/{id}")
-    public String addProductToCart(@PathVariable long id, HttpServletRequest request){
-        HttpSession session = request.getSession(false);
-        long productId = id;
+    public ModelAndView addProductToCart(@PathVariable long id, HttpServletRequest request) {
+    ModelAndView mav = new ModelAndView();
+
+    HttpSession session = request.getSession(false);
+
+    if (session != null && session.getAttribute("email") != null) {
         String email = (String) session.getAttribute("email");
-        this.productService.addProductToCart(email, productId, session);
-        return "redirect:/";
+        this.productService.addProductToCart(email, id, session);
+        mav.setViewName("redirect:/");
+    } else {
+        // Nếu người dùng chưa đăng nhập hoặc session hết hạn
+        mav.setViewName("redirect:/login");
+    }
+
+    return mav;
     }
 
     @GetMapping("/cart")
-    public String getCartPage(Model model, HttpServletRequest request){
+    public ModelAndView getCartPage(HttpServletRequest request) {
+    ModelAndView mav = new ModelAndView();
+
     HttpSession session = request.getSession(false);
     if (session == null || session.getAttribute("id") == null) {
-        return "redirect:/login"; 
+        mav.setViewName("redirect:/login");
+        return mav;
     }
+
     long id = (long) session.getAttribute("id");
     User currentUser = new User();
     currentUser.setId(id);
+
     Cart cart = productService.fetchByUser(currentUser);
     List<CartDetail> cartDetails = new ArrayList<>();
     if (cart != null && cart.getCartDetails() != null) {
         cartDetails = cart.getCartDetails();
     }
+
     double totalPrice = 0;
     for (CartDetail detail : cartDetails) {
         totalPrice += detail.getPrice() * detail.getQuantity();
     }
-    model.addAttribute("cartDetails", cartDetails);
-    model.addAttribute("totalPrice", totalPrice);
-    model.addAttribute("cart", cart);
-    return "client/cart/show";
+
+    mav.setViewName("client/cart/show");
+    mav.addObject("cartDetails", cartDetails);
+    mav.addObject("totalPrice", totalPrice);
+    mav.addObject("cart", cart);
+
+    return mav;
     }
+
 
     @PostMapping(value = "/cart/update", produces = MediaType.APPLICATION_JSON_VALUE)
     @ResponseBody
@@ -98,56 +128,95 @@ public class ItemController {
 
 
     @GetMapping("/checkout")
-    public String getCheckoutPage(Model model, HttpServletRequest request){
-        User currentUser = new User();
-        HttpSession session = request.getSession(false);
+    public ModelAndView getCheckoutPage(HttpServletRequest request) {
+    ModelAndView mav = new ModelAndView("client/cart/checkout");
+
+    User currentUser = new User();
+    HttpSession session = request.getSession(false);
+    
+    if (session != null && session.getAttribute("id") != null) {
         long id = (long) session.getAttribute("id");
         currentUser.setId(id);
+
         Cart cart = this.productService.fetchByUser(currentUser);
-        List<CartDetail> cartDetails = cart == null ? new ArrayList<CartDetail>() : cart.getCartDetails();
+        List<CartDetail> cartDetails = cart == null ? new ArrayList<>() : cart.getCartDetails();
+
         double totalPrice = 0;
         for (CartDetail detail : cartDetails) {
             totalPrice += detail.getPrice() * detail.getQuantity();
         }
 
-        model.addAttribute("cartDetail", cartDetails);
-        model.addAttribute("totalPrice", totalPrice);
-        return "client/cart/checkout";
+        mav.addObject("cartDetails", cartDetails);
+        mav.addObject("totalPrice", totalPrice);
+    } else {
+        // Nếu session không tồn tại hoặc chưa đăng nhập, chuyển hướng về trang login
+        mav.setViewName("redirect:/login");
+    }
+
+    return mav;
     }
 
     @PostMapping("/confirm-checkout")
-    public String getCheckOutPage(@ModelAttribute("cart") Cart cart){
-        List<CartDetail> cartDetails = cart == null ? new ArrayList<>() : cart.getCartDetails();
-        this.productService.updateCartBeforeCheckout(cartDetails);
-        return "redirect:/checkout";
+    public ModelAndView getCheckOutPage(@ModelAttribute("cart") Cart cart) {
+    List<CartDetail> cartDetails = cart == null ? new ArrayList<>() : cart.getCartDetails();
+    this.productService.updateCartBeforeCheckout(cartDetails);
+
+    ModelAndView mav = new ModelAndView("redirect:/checkout");
+    return mav;
     }
 
     @PostMapping("/place-order")
-    public String handlePlaceOrder(
+    public ModelAndView handlePlaceOrder(
             HttpServletRequest request,
             @RequestParam("receiverName") String receiverName,
             @RequestParam("receiverAddress") String receiverAddress,
             @RequestParam("receiverPhone") String receiverPhone) {
-            User currentUser = new User();
+
+        ModelAndView mav = new ModelAndView();
 
         HttpSession session = request.getSession(false);
+        if (session == null || session.getAttribute("id") == null) {
+            mav.setViewName("redirect:/login");
+            return mav;
+        }
+
         long id = (long) session.getAttribute("id");
+        User currentUser = new User();
         currentUser.setId(id);
-        this.productService.handlePlaceOrder(currentUser, session, receiverName, receiverAddress, receiverPhone);
-        return "redirect:/thanks";
+
+        // Lấy cart từ user rồi tính tổng tiền ở server
+        Cart cart = productService.fetchByUser(currentUser);
+        double totalPrice = 0;
+        if (cart != null && cart.getCartDetails() != null) {
+            for (CartDetail detail : cart.getCartDetails()) {
+                totalPrice += detail.getPrice() * detail.getQuantity();
+            }
+        }
+
+        this.productService.handlePlaceOrder(currentUser, session, receiverName, receiverAddress, receiverPhone, totalPrice);
+        mav.setViewName("redirect:/thanks");
+        return mav;
     }
+
 
     @GetMapping("/thanks")
-    public String getThankYouPage(Model model) {
-        return "client/cart/thanks";
+    public ModelAndView getThankYouPage() {
+    return new ModelAndView("client/cart/thanks");
     }
 
+
     @PostMapping("/delete-product-from-cart/{id}")
-    public String deleteProductFromCart(@PathVariable long id, HttpServletRequest request) {
-        HttpSession session = request.getSession(false);
-        long productId = id;
-        this.productService.removeProductCart(productId, session);
-        return "redirect:/cart";
-}
+    public ModelAndView deleteProductFromCart(@PathVariable long id, HttpServletRequest request) {
+    ModelAndView mav = new ModelAndView("redirect:/cart");
+
+    HttpSession session = request.getSession(false);
+    if (session != null) {
+        this.productService.removeProductCart(id, session);
+    } else {
+        mav.setViewName("redirect:/login");
+    }
+
+    return mav;
+    }
 
 }

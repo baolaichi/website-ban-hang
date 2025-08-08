@@ -33,7 +33,7 @@ public class CategoryController {
     }
 
    @PostMapping("/add")
-public ModelAndView saveCategory(@ModelAttribute Category category) {
+    public ModelAndView saveCategory(@ModelAttribute Category category) {
     ModelAndView mav = new ModelAndView();
 
     try {
@@ -47,6 +47,6 @@ public ModelAndView saveCategory(@ModelAttribute Category category) {
     mav.setViewName("redirect:/admin/categories/add");
 
     return mav;
-}
+    }
 
 }

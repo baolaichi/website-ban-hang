@@ -20,7 +20,7 @@ import com.lsb.webshop.service.ProductService;
 import com.lsb.webshop.service.UserService;
 
 import jakarta.servlet.http.HttpSession;
-
+import org.springframework.web.servlet.ModelAndView;
 
 
 @Controller
@@ -34,27 +34,31 @@ public class HomePageController {
     }
 
     @GetMapping("/")
-    public String getMethodName(Model model, HttpSession session, Principal principal) {
-    List<Product> products = this.productService.getAllActiveProducts();
-    model.addAttribute("products", products);
+    public ModelAndView getMethodName(HttpSession session, Principal principal) {
+        ModelAndView mav = new ModelAndView("client/homepage/show");
 
-    // Nếu đã đăng nhập thì lấy thông tin user
-    if (principal != null) {
-        String username = principal.getName(); // lấy username hiện tại
-        var user = userService.findByUsername(username);
-        session.setAttribute("fullName", user.getFullName());
-        session.setAttribute("avatar", user.getAvatar());
-    }
+        List<Product> products = this.productService.getAllActiveProducts();
+        mav.addObject("products", products);
 
-    return "client/homepage/show";
+        // Nếu đã đăng nhập thì lấy thông tin user
+        if (principal != null) {
+            String username = principal.getName(); // lấy username hiện tại
+            var user = userService.findByUsername(username);
+            session.setAttribute("fullName", user.getFullName());
+            session.setAttribute("avatar", user.getAvatar());
+        }
+
+        return mav;
     }
 
     @GetMapping("/products")
-    public String getFullProduct(Model model, HttpSession session, Principal principal){
-        List<Product> products = this.productService.getAllActiveProducts();
-        model.addAttribute("products", products);
+    public ModelAndView getFullProduct(HttpSession session, Principal principal) {
+        ModelAndView mav = new ModelAndView("client/product/show");
 
-        if(principal != null){
+        List<Product> products = this.productService.getAllActiveProducts();
+        mav.addObject("products", products);
+
+        if (principal != null) {
             String userName = principal.getName();
             var user = userService.findByUsername(userName);
 
@@ -62,39 +66,45 @@ public class HomePageController {
             session.setAttribute("avatar", user.getAvatar());
         }
 
-        return "client/product/show";
-
+        return mav;
     }
+
 
     @GetMapping("/register")
-    public String getRegisterPage(Model model) {
-        model.addAttribute("title", "Đăng ký tài khoản");
-        model.addAttribute("newUser", new registerDTO());
-        return "client/auth/register";
+    public ModelAndView getRegisterPage() {
+        ModelAndView mav = new ModelAndView("client/auth/register");
+        mav.addObject("title", "Đăng ký tài khoản");
+        mav.addObject("newUser", new registerDTO());
+        return mav;
     }
+
 
     @PostMapping("/register")
-    public String handleRegisterPage(@ModelAttribute("newUser") registerDTO dto, Model model) {
-    try {
-        userService.register(dto);
-        return "redirect:/login?success";
-    } catch (Exception e) {
-        model.addAttribute("error", e.getMessage());
-        return "client/auth/register";
+    public ModelAndView handleRegisterPage(@ModelAttribute("newUser") registerDTO dto) {
+        try {
+            userService.register(dto);
+            return new ModelAndView("redirect:/login?success");
+        } catch (Exception e) {
+            ModelAndView mav = new ModelAndView("client/auth/register");
+            mav.addObject("error", e.getMessage());
+            return mav;
+        }
     }
-}
 
-     @GetMapping("/login")
-    public String loginPage() {
-        return "client/auth/login";
+
+    @GetMapping("/login")
+    public ModelAndView loginPage() {
+        return new ModelAndView("client/auth/login");
     }
+
 
     @GetMapping("/access-deny")
-    public String accessDeniedPage() {
-        return "client/auth/deny";
+    public ModelAndView accessDeniedPage() {
+        return new ModelAndView("client/auth/deny");
     }
 
-     @GetMapping("/api/search")
+
+    @GetMapping("/api/search")
     @ResponseBody
     public List<ProductDTO> searchProducts(@RequestParam("keyword") String keyword) {
         if (keyword == null || keyword.trim().length() < 2) {
@@ -106,6 +116,7 @@ public class HomePageController {
                 .map(product -> new ProductDTO(product.getId(), product.getName(), product.getShortDesc()))
                 .collect(Collectors.toList());
     }
+
 
 }
 

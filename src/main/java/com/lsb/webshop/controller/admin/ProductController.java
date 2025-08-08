@@ -13,6 +13,7 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.multipart.MultipartFile;
+import org.springframework.web.servlet.ModelAndView;
 import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 
 import com.lsb.webshop.domain.Product;
@@ -38,124 +39,158 @@ public class ProductController {
     }
 
     @GetMapping("/product")
-    public String getDashboard(Model model) {
-        List<Product> products = this.productService.getAllActiveProducts(); // ✅ chỉ lấy sản phẩm chưa bị xóa mềm
-        model.addAttribute("products", products);
-        return "admin/product/show";
+    public ModelAndView getDashboard() {
+        List<Product> products = this.productService.getAllActiveProducts();
+        ModelAndView mav = new ModelAndView("admin/product/show");
+        mav.addObject("products", products);
+
+        return mav;
     }
+
 
     @GetMapping("/product/create")
-    public String getMethodName(Model model) {
-        model.addAttribute("newProduct", new Product());
-        model.addAttribute("categories", categoryService.getAllCategorys());
-        return "admin/product/create";
+    public ModelAndView getCreateProductPage() {
+        ModelAndView mav = new ModelAndView("admin/product/create");
+        mav.addObject("newProduct", new Product());
+        mav.addObject("categories", categoryService.getAllCategorys());
+
+        return mav;
     }
+
 
     @PostMapping("/product/create")
-    public String create(Model model, @ModelAttribute("newProduct") @Valid Product sp,
-        BindingResult productBindingResult,
-        @RequestParam("productFile") MultipartFile file) {
+    public ModelAndView create(@ModelAttribute("newProduct") @Valid Product sp,
+                               BindingResult productBindingResult,
+                               @RequestParam("productFile") MultipartFile file) {
 
-    if (productBindingResult.hasErrors()) {
-        model.addAttribute("categories", categoryService.getAllCategorys());
-        return "/admin/product/create";
+        ModelAndView mav = new ModelAndView();
+
+        if (productBindingResult.hasErrors()) {
+            mav.setViewName("/admin/product/create");
+            mav.addObject("categories", categoryService.getAllCategorys());
+            return mav;
+        }
+
+        try {
+            String productImg = this.uploadService.HandleSaveUploadFile(file, "product");
+            sp.setImage(productImg);
+            this.productService.SaveProduct(sp);
+
+            mav.setViewName("redirect:/admin/product");
+            return mav;
+
+        } catch (IllegalArgumentException e) {
+            productBindingResult.rejectValue("name", "error.newProduct", e.getMessage());
+
+            mav.setViewName("/admin/product/create");
+            mav.addObject("categories", categoryService.getAllCategorys());
+            return mav;
+        }
     }
 
-    try {
-        String productImg = this.uploadService.HandleSaveUploadFile(file, "product");
-        sp.setImage(productImg);
-        this.productService.SaveProduct(sp); // có thể ném IllegalArgumentException
-        return "redirect:/admin/product";
-
-    } catch (IllegalArgumentException e) {
-        productBindingResult.rejectValue("name", "error.newProduct", e.getMessage());
-        model.addAttribute("categories", categoryService.getAllCategorys());
-        return "/admin/product/create";
-    }
-}
 
     @GetMapping("/product/{id}")
-    public String getProductById(@PathVariable Long id, Model model) {
+    public ModelAndView getProductById(@PathVariable Long id) {
         Product product = this.productService.getByIdProduct(id).get();
-        model.addAttribute("product", product);
-        model.addAttribute("id", id);
 
-        return "/admin/product/detail";
+        ModelAndView mav = new ModelAndView("/admin/product/detail");
+        mav.addObject("product", product);
+        mav.addObject("id", id);
+
+        return mav;
     }
+
 
     // Hiển thị trang xác nhận xóa
     @GetMapping("/product/delete/{id}")
-    public String confirmDeleteProduct(@PathVariable Long id, Model model) {
-    Optional<Product> productOpt = productService.getByIdAndNotDeleted(id); // dùng soft-delete filter
+    public ModelAndView confirmDeleteProduct(@PathVariable Long id) {
+        ModelAndView mav = new ModelAndView();
+        Optional<Product> productOpt = productService.getByIdAndNotDeleted(id); // dùng soft-delete filter
 
-    if (productOpt.isPresent()) {
-        model.addAttribute("deleteProduct", productOpt.get());
-        return "/admin/product/delete"; // form xác nhận
-    } else {
-        model.addAttribute("errorMessage", "Không tìm thấy sản phẩm hoặc sản phẩm đã bị xóa.");
-        return "redirect:/admin/product"; // quay về danh sách nếu lỗi
+        if (productOpt.isPresent()) {
+            mav.addObject("deleteProduct", productOpt.get());
+            mav.setViewName("/admin/product/delete"); // form xác nhận
+        } else {
+            mav.addObject("errorMessage", "Không tìm thấy sản phẩm hoặc sản phẩm đã bị xóa.");
+            mav.setViewName("redirect:/admin/product"); // quay về danh sách nếu lỗi
+        }
+        return mav;
     }
-}
-
 
     // Xử lý xóa sản phẩm (soft delete)
     @PostMapping("/product/delete")
-    public String softDeleteProduct(@ModelAttribute("deleteProduct") Product product, RedirectAttributes redirectAttributes) {
-    try {
-        productService.softDeleteProduct(product.getId());
-        redirectAttributes.addFlashAttribute("successMessage", "Đã xóa sản phẩm thành công.");
-    } catch (IllegalArgumentException e) {
-        redirectAttributes.addFlashAttribute("errorMessage", e.getMessage());
-    } catch (Exception e) {
-        redirectAttributes.addFlashAttribute("errorMessage", "Đã xảy ra lỗi khi xóa sản phẩm.");
-    }
-    return "redirect:/admin/product";
-}
+    public ModelAndView softDeleteProduct(
+            @ModelAttribute("deleteProduct") Product product,
+            RedirectAttributes redirectAttributes) {
 
+        ModelAndView mav = new ModelAndView("redirect:/admin/product");
 
-    @GetMapping("/product/update/{id}")
-    public String updateProduct(Model model, @PathVariable Long id) {
-    Optional<Product> productOpt = productService.getByIdProduct(id);
-    if (productOpt.isPresent()) {
-        model.addAttribute("updateProduct", productOpt.get());
-        return "/admin/product/update";
-    } else {
-        return "redirect:/admin/product?notfound";
-    }
-}
-
-    @PostMapping("/product/update")
-    public String postUpdateProduct(Model model,
-                @ModelAttribute("updateProduct") @Valid Product sp,
-                BindingResult productBindingResult,
-                @RequestParam("lsb") MultipartFile file) {
-
-    if (productBindingResult.hasErrors()) {
-        model.addAttribute("categories", categoryService.getAllCategorys());
-        return "/admin/product/update";
-    }
-
-    try {
-        productService.updateProductWithImage(sp, file);
-        return "redirect:/admin/product";
-
-    } catch (IllegalArgumentException e) {
-        String[] parts = e.getMessage().split("\\|", 2);
-        if (parts.length == 2) {
-            productBindingResult.rejectValue(parts[0], "error.updateProduct", parts[1]);
-        } else {
-            productBindingResult.reject("error.updateProduct", e.getMessage());
+        try {
+            productService.softDeleteProduct(product.getId());
+            redirectAttributes.addFlashAttribute("successMessage", "Đã xóa sản phẩm thành công.");
+        } catch (IllegalArgumentException e) {
+            redirectAttributes.addFlashAttribute("errorMessage", e.getMessage());
+        } catch (Exception e) {
+            redirectAttributes.addFlashAttribute("errorMessage", "Đã xảy ra lỗi khi xóa sản phẩm.");
         }
-        model.addAttribute("categories", categoryService.getAllCategorys());
-        return "/admin/product/update";
-
-    } catch (Exception e) {
-        productBindingResult.reject("globalError", "Đã xảy ra lỗi khi cập nhật sản phẩm.");
-        log.error("[ProductController] Lỗi hệ thống: {}", e.getMessage(), e);
-        model.addAttribute("categories", categoryService.getAllCategorys());
-        return "/admin/product/update";
+        return mav;
     }
-}
+
+    // Hiển thị form cập nhật sản phẩm
+    @GetMapping("/product/update/{id}")
+    public ModelAndView updateProduct(@PathVariable Long id) {
+        ModelAndView mav = new ModelAndView();
+        Optional<Product> productOpt = productService.getByIdProduct(id);
+
+        if (productOpt.isPresent()) {
+            mav.addObject("updateProduct", productOpt.get());
+            mav.setViewName("/admin/product/update");
+        } else {
+            mav.setViewName("redirect:/admin/product?notfound");
+        }
+        return mav;
+    }
+
+    // Xử lý cập nhật sản phẩm
+    @PostMapping("/product/update")
+    public ModelAndView postUpdateProduct(
+            @ModelAttribute("updateProduct") @Valid Product sp,
+            BindingResult productBindingResult,
+            @RequestParam("lsb") MultipartFile file) {
+
+        ModelAndView mav = new ModelAndView();
+
+        if (productBindingResult.hasErrors()) {
+            mav.addObject("categories", categoryService.getAllCategorys());
+            mav.setViewName("/admin/product/update");
+            return mav;
+        }
+
+        try {
+            productService.updateProductWithImage(sp, file);
+            mav.setViewName("redirect:/admin/product");
+            return mav;
+
+        } catch (IllegalArgumentException e) {
+            String[] parts = e.getMessage().split("\\|", 2);
+            if (parts.length == 2) {
+                productBindingResult.rejectValue(parts[0], "error.updateProduct", parts[1]);
+            } else {
+                productBindingResult.reject("error.updateProduct", e.getMessage());
+            }
+            mav.addObject("categories", categoryService.getAllCategorys());
+            mav.setViewName("/admin/product/update");
+            return mav;
+
+        } catch (Exception e) {
+            productBindingResult.reject("globalError", "Đã xảy ra lỗi khi cập nhật sản phẩm.");
+            log.error("[ProductController] Lỗi hệ thống: {}", e.getMessage(), e);
+            mav.addObject("categories", categoryService.getAllCategorys());
+            mav.setViewName("/admin/product/update");
+            return mav;
+        }
+    }
+
 
 
 }
