@@ -17,6 +17,7 @@ import com.lsb.webshop.service.UploadService;
 import com.lsb.webshop.service.UserService;
 
 import jakarta.servlet.http.HttpServletRequest;
+import org.springframework.web.servlet.ModelAndView;
 
 
 @Controller
@@ -30,41 +31,44 @@ public class AccountController {
         this.userService = userService;
         this.uploadService = uploadService;
     }
-    
+
     @GetMapping("/profile")
-    public String viewProfile(Model model, Principal principal){
+    public ModelAndView viewProfile(Principal principal) {
         String userName = principal.getName();
         UserDTO userDTO = userService.getUserByUserName(userName);
-        model.addAttribute("user", userDTO);
-        return "client/account/profile";
+
+        ModelAndView mav = new ModelAndView("client/account/profile");
+        mav.addObject("user", userDTO);
+
+        return mav;
     }
 
-   @PostMapping("/update")
-public String updateAccount(@ModelAttribute UserDTO userDTO,
-                            @RequestParam("avatarFile") MultipartFile avatarFile,
-                            HttpServletRequest request) {
-    try {
-        if (!avatarFile.isEmpty()) {
-            // Gọi service lưu ảnh
-            String savedFileName = uploadService.HandleSaveUploadFile(avatarFile, "avatar");
 
-            // Lưu tên file ảnh vào DTO
-            userDTO.setAvatarUrl(savedFileName);
+    @PostMapping("/update")
+    public ModelAndView updateAccount(@ModelAttribute UserDTO userDTO,
+                                      @RequestParam("avatarFile") MultipartFile avatarFile,
+                                      HttpServletRequest request) {
+        ModelAndView mav = new ModelAndView("client/account/profile");
 
-            // Cập nhật session nếu có dùng ảnh
-            request.getSession().setAttribute("avatar", savedFileName);
+        try {
+            if (!avatarFile.isEmpty()) {
+                String savedFileName = uploadService.HandleSaveUploadFile(avatarFile, "avatar");
+                userDTO.setAvatarUrl(savedFileName);
+                request.getSession().setAttribute("avatar", savedFileName);
+            }
+
+            userService.updateAccount(userDTO);
+            mav.addObject("user", userDTO);
+            mav.addObject("success", "Cập nhật thành công!");
+
+        } catch (Exception e) {
+            e.printStackTrace();
+            mav.addObject("user", userDTO);
+            mav.addObject("error", "Đã xảy ra lỗi: " + e.getMessage());
         }
 
-        userService.updateAccount(userDTO);
-        return "redirect:/account/profile?success";
-
-    } catch (Exception e) {
-        e.printStackTrace();
-        return "redirect:/account/profile?error";
+        return mav;
     }
-}
-
-
 
 
 }
