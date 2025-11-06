@@ -113,14 +113,15 @@
                         <input type="file" class="form-control" name="avatarFile">
                     </div>
 
+                    <div class="text-center mb-3">
+                        <img th:if="*{avatarUrl != null}" th:src="@{'/images/avatar/' + ${user.avatarUrl}}" class="profile-avatar">
+                    </div>
+
                     <div class="d-grid">
                         <button type="submit" class="btn btn-primary">Lưu thay đổi</button>
                     </div>
-
-                    <div th:if="${param.success}" class="mt-3 text-center">
-                        <p class="text-success">✅ Cập nhật thành công!</p>
-                    </div>
                 </form>
+
             </div>
         </div>
     </div>

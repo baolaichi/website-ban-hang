@@ -1,0 +1,165 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<body>
+<!-- Fragment Chatbot -->
+<div th:fragment="chatbot">
+    <div class="chat-popup" id="chatPopup">
+        <div class="chat-header">
+            <h4>Trợ lý Ảo</h4>
+            <button type="button" class="btn-close" onclick="closeChat()">X</button>
+        </div>
+        <div class="chat-body" id="chatBody">
+            <div class="bot-message">Chào bạn! Tôi có thể giúp gì?</div>
+        </div>
+        <div class="chat-footer">
+            <input type="text" id="chatInput" placeholder="Nhập tin nhắn..." onkeyup="checkEnter(event)">
+            <button onclick="sendMessage()">Gửi</button>
+        </div>
+    </div>
+
+    <button class="chat-open-btn" onclick="openChat()">Chat 24/7</button>
+
+    <style>
+        .chat-popup {
+            display: none;
+            position: fixed;
+            bottom: 80px;
+            right: 30px;
+            width: 300px;
+            background: #fff;
+            border-radius: 10px;
+            box-shadow: 0 0 10px rgba(0,0,0,0.2);
+            overflow: hidden;
+            z-index: 9999;
+        }
+
+        .chat-header {
+            background: #007bff;
+            color: white;
+            padding: 10px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .chat-body {
+            height: 250px;
+            overflow-y: auto;
+            padding: 10px;
+            background: #f8f9fa;
+        }
+
+        .chat-footer {
+            display: flex;
+            border-top: 1px solid #ddd;
+            padding: 10px;
+            background: #fff;
+        }
+
+        .chat-footer input {
+            flex: 1;
+            padding: 5px;
+            border: 1px solid #ccc;
+            border-radius: 5px;
+        }
+
+        .chat-footer button {
+            margin-left: 10px;
+            padding: 6px 12px;
+            background: #007bff;
+            border: none;
+            color: white;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+
+        .chat-open-btn {
+            position: fixed;
+            bottom: 20px;
+            right: 30px;
+            background: #007bff;
+            color: white;
+            border: none;
+            border-radius: 50%;
+            width: 60px;
+            height: 60px;
+            font-size: 18px;
+            box-shadow: 0 0 10px rgba(0,0,0,0.3);
+            cursor: pointer;
+            z-index: 9999;
+        }
+
+        .user-message {
+            text-align: right;
+            background: #dcf8c6;
+            padding: 6px 10px;
+            border-radius: 10px;
+            margin: 5px 0;
+            display: inline-block;
+            max-width: 80%;
+        }
+
+        .bot-message {
+            text-align: left;
+            background: #f1f0f0;
+            padding: 6px 10px;
+            border-radius: 10px;
+            margin: 5px 0;
+            display: inline-block;
+            max-width: 80%;
+        }
+    </style>
+
+    <script>
+        const chatSessionId = 'session_' + Math.random().toString(36).substr(2, 9);
+        const chatBody = document.getElementById('chatBody');
+        const chatInput = document.getElementById('chatInput');
+
+        function openChat() {
+            document.getElementById('chatPopup').style.display = 'block';
+        }
+
+        function closeChat() {
+            document.getElementById('chatPopup').style.display = 'none';
+        }
+
+        function checkEnter(event) {
+            if (event.key === "Enter") sendMessage();
+        }
+
+        async function sendMessage() {
+            const message = chatInput.value;
+            if (!message.trim()) return;
+
+            appendMessage('USER', message);
+            chatInput.value = '';
+
+            try {
+                const response = await fetch('http://localhost:8080/api/chat/send', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ message: message, sessionId: chatSessionId })
+                });
+
+                if (!response.ok) throw new Error("Lỗi máy chủ Spring Boot");
+
+                const data = await response.json();
+                appendMessage('BOT', data.response);
+
+            } catch (error) {
+                console.error('Lỗi khi gọi API chat:', error);
+                appendMessage('BOT', 'Bot đang gặp lỗi, xin thử lại sau.');
+            }
+        }
+
+        function appendMessage(sender, text) {
+            const messageDiv = document.createElement('div');
+            messageDiv.className = (sender === 'USER') ? 'user-message' : 'bot-message';
+            messageDiv.innerText = text;
+            chatBody.appendChild(messageDiv);
+            chatBody.scrollTop = chatBody.scrollHeight;
+        }
+    </script>
+</div>
+</body>
+</html>

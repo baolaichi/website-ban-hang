@@ -17,8 +17,13 @@ public class CategoryService {
     private CategoryRepository categoryRepository;
 
     public Category saveCategory(Category category) {
-        log.info("[CategoryService] saveCategory() - Saving category: {}", category.getName());
-        return categoryRepository.save(category);
+        try {
+            log.info("[CategoryService] saveCategory() - Saving category: {}", category.getName());
+            return categoryRepository.save(category);
+        } catch (Exception e) {
+            log.error("[CategoryService] saveCategory() - Error saving category: {}", e.getMessage(), e);
+            return null; // trả null nếu lỗi
+        }
     }
 
     public List<Category> getAllCategorys() {

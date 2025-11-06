@@ -31,7 +31,7 @@
                             <div th:if="${errorMessage}" class="alert alert-danger" th:text="${errorMessage}"></div>
                             <div th:if="${successMessage}" class="alert alert-success" th:text="${successMessage}"></div>
                             <hr />
-                            <form th:action="@{/admin/user/update/{id}(id=${updateUser.id})}" 
+                            <form th:action="@{/admin/user/update/{id}(id=${updateUser.id})}"
                                   th:object="${updateUser}" method="post">
                                 <div class="mb-3">
                                     <label for="email" class="form-label">Email address:</label>
@@ -55,11 +55,15 @@
 
                                 <div class="mb-3 col-12 col-md-6">
                                     <label for="role" class="form-label">Role:</label>
-                                    <select th:field="*{role.name}" id="role" class="form-select">
-                                        <option value="ADMIN" th:text="'ADMIN'"></option>
-                                        <option value="USER" th:text="'USER'"></option>
+                                    <select th:field="*{role.id}" class="form-select">
+                                        <option th:each="r : ${roles}"
+                                                th:value="${r.id}"
+                                                th:text="${r.name}"
+                                                th:selected="${r.id == updateUser.role.id}">
+                                        </option>
                                     </select>
                                 </div>
+
 
                                 <div class="mb-3">
                                     <label for="address" class="form-label">Address:</label>

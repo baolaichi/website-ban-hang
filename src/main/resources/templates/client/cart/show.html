@@ -21,12 +21,15 @@
 </head>
 <body>
 
+<!-- Spinner -->
 <div id="spinner" class="show w-100 vh-100 bg-white position-fixed translate-middle top-50 start-50 d-flex align-items-center justify-content-center">
     <div class="spinner-grow text-primary" role="status"></div>
 </div>
 
+<!-- Header -->
 <div th:replace="~{client/layout/header :: header}"></div>
 
+<!-- Cart Page Start -->
 <div class="container-fluid py-5">
     <div class="container py-5">
 
@@ -40,7 +43,7 @@
             </nav>
         </div>
 
-        <!-- Table -->
+        <!-- Cart Table -->
         <div class="table-responsive">
             <table class="table">
                 <thead>
@@ -54,10 +57,12 @@
                 </tr>
                 </thead>
                 <tbody>
+                <!-- Trường hợp giỏ hàng rỗng -->
                 <tr th:if="${#lists.isEmpty(cartDetails)}">
                     <td colspan="6" class="text-center fw-bold">Không có sản phẩm trong giỏ hàng</td>
                 </tr>
 
+                <!-- Lặp qua các sản phẩm trong giỏ hàng -->
                 <tr th:each="cartDetail : ${cartDetails}">
                     <td>
                         <img th:src="@{'/images/product/' + ${cartDetail.product.image}}"
@@ -74,6 +79,7 @@
                            th:text="${#numbers.formatDecimal(cartDetail.price, 0, 'COMMA', 0, 'POINT')} + ' đ'">0 đ</p>
                     </td>
                     <td>
+                        <!-- Nút tăng giảm số lượng (Hoạt động bằng AJAX) -->
                         <div class="input-group quantity mt-4" style="width: 100px;">
                             <div class="input-group-btn">
                                 <button class="btn btn-sm btn-minus rounded-circle bg-light border">
@@ -92,77 +98,71 @@
                         </div>
                     </td>
                     <td>
+                        <!-- Tổng tiền của dòng -->
                         <p class="mb-0 mt-4 line-total"
                            th:text="${#numbers.formatDecimal(cartDetail.price * cartDetail.quantity, 0, 'COMMA', 0, 'POINT')} + ' đ'">0 đ</p>
                     </td>
                     <td>
+                        <!-- Nút xóa sản phẩm -->
                         <form th:method="post" th:action="@{/delete-product-from-cart/{id}(id=${cartDetail.id})}">
                             <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}" />
                             <button class="btn btn-md rounded-circle bg-light border mt-4">
                                 <i class="fa fa-times text-danger"></i>
                             </button>
                         </form>
-
                     </td>
                 </tr>
                 </tbody>
             </table>
         </div>
 
-        <!-- ... giữ nguyên phần trên -->
-
-<!-- Tổng tiền -->
-<div class="mt-5 row g-4 justify-content-start" th:if="${not #lists.isEmpty(cartDetails)}">
-    <div class="col-12 col-md-8">
-        <div class="bg-light rounded">
-            <div class="p-4">
-                <h1 class="display-6 mb-4">Thông Tin <span class="fw-normal">Đơn Hàng</span></h1>
-                <div class="d-flex justify-content-between mb-4">
-                    <h5 class="mb-0 me-4">Tạm tính:</h5>
-                    <p class="mb-0" th:attr="data-cart-total-price=${totalPrice}"
-                       th:text="${#numbers.formatDecimal(totalPrice, 0, 'COMMA', 0, 'POINT')} + ' đ'">0 đ</p>
-                </div>
-                <div class="d-flex justify-content-between">
-                    <h5 class="mb-0 me-4">Phí vận chuyển</h5>
-                    <p class="mb-0">0 đ</p>
-                </div>
-            </div>
-            <div class="py-4 mb-4 border-top border-bottom d-flex justify-content-between">
-                <h5 class="mb-0 ps-4 me-4">Tổng số tiền</h5>
-                <p class="mb-0 pe-4" th:attr="data-cart-total-price=${totalPrice}"
-                   th:text="${#numbers.formatDecimal(totalPrice, 0, 'COMMA', 0, 'POINT')} + ' đ'">0 đ</p>
-            </div>
-
-            <!-- Form xác nhận thanh toán -->
-            <form th:action="@{/confirm-checkout}" th:object="${cart}" method="post">
-                <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}" />
-
-                <!-- Ẩn dữ liệu giỏ hàng -->
-                <div style="display: none;">
-                    <div th:each="cartDetail, status : *{cartDetails}">
-                        <input type="text" th:field="*{cartDetails[__${status.index}__].id}" />
-                        <input type="text" th:field="*{cartDetails[__${status.index}__].quantity}" />
+        <!-- Tổng tiền và Nút thanh toán (Nếu giỏ hàng không rỗng) -->
+        <div class="mt-5 row g-4 justify-content-start" th:if="${not #lists.isEmpty(cartDetails)}">
+            <div class="col-12 col-md-8">
+                <div class="bg-light rounded">
+                    <div class="p-4">
+                        <h1 class="display-6 mb-4">Thông Tin <span class="fw-normal">Đơn Hàng</span></h1>
+                        <div class="d-flex justify-content-between mb-4">
+                            <h5 class="mb-0 me-4">Tạm tính:</h5>
+                            <p class="mb-0" th:attr="data-cart-total-price=${totalPrice}"
+                               th:text="${#numbers.formatDecimal(totalPrice, 0, 'COMMA', 0, 'POINT')} + ' đ'">0 đ</p>
+                        </div>
+                        <div class="d-flex justify-content-between">
+                            <h5 class="mb-0 me-4">Phí vận chuyển</h5>
+                            <p class="mb-0">0 đ</p>
+                        </div>
                     </div>
+                    <div class="py-4 mb-4 border-top border-bottom d-flex justify-content-between">
+                        <h5 class="mb-0 ps-4 me-4">Tổng số tiền</h5>
+                        <p class="mb-0 pe-4" th:attr="data-cart-total-price=${totalPrice}"
+                           th:text="${#numbers.formatDecimal(totalPrice, 0, 'COMMA', 0, 'POINT')} + ' đ'">0 đ</p>
+                    </div>
+
+                    <!--
+                      ==== PHẦN ĐÃ SỬA LỖI ====
+                      Thay thế <form> hỏng bằng thẻ <a> đơn giản
+                      để chuyển hướng đến trang /checkout
+                    -->
+                    <a th:href="@{/checkout}"
+                       class="btn border-secondary rounded-pill px-4 py-3 text-primary text-uppercase mb-4 ms-4">
+                        Đi đến thanh toán
+                    </a>
+
                 </div>
-
-                <button type="submit"
-                        class="btn border-secondary rounded-pill px-4 py-3 text-primary text-uppercase mb-4 ms-4">
-                    Xác nhận đặt hàng
-                </button>
-            </form>
+            </div>
         </div>
-    </div>
-</div>
-
 
     </div>
 </div>
+<!-- Cart Page End -->
 
+<!-- Footer -->
 <div th:replace="~{client/layout/footer :: footer}"></div>
 
+<!-- Back to Top -->
 <a href="#" class="btn btn-primary border-3 border-primary rounded-circle back-to-top"><i class="fa fa-arrow-up"></i></a>
 
-<!-- JS Libraries -->
+<!-- JavaScript Libraries -->
 <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.6.4/jquery.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.0.0/dist/js/bootstrap.bundle.min.js"></script>
 <script src="/client/lib/easing/easing.min.js"></script>
@@ -171,6 +171,7 @@
 <script src="/client/lib/owlcarousel/owl.carousel.min.js"></script>
 <script src="/client/js/main.js"></script>
 
+<!-- AJAX Script (Giữ nguyên) -->
 <script>
     (function ($) {
         "use strict";
@@ -186,16 +187,17 @@
         }
 
         $(document).ready(function () {
+            // Lấy CSRF token từ thẻ meta
             const token = $("meta[name='_csrf']").attr("content");
             const header = $("meta[name='_csrf_header']").attr("content");
 
+            // Thêm CSRF token vào tất cả các request AJAX
             $(document).ajaxSend(function (e, xhr, options) {
                 xhr.setRequestHeader(header, token);
             });
 
+            // Logic xử lý nút +/-
             $('.quantity button').on('click', function () {
-                let change = 0;
-
                 const button = $(this);
                 const input = button.closest('.quantity').find('input');
                 const oldValue = parseInt(input.val());
@@ -203,27 +205,26 @@
 
                 if (button.hasClass('btn-plus')) {
                     newVal = oldValue + 1;
-                    change = 1;
-                } else if (oldValue > 1) {
+                } else if (oldValue > 1) { // Chỉ giảm nếu lớn hơn 1
                     newVal = oldValue - 1;
-                    change = -1;
                 }
+
+                if (newVal === oldValue) return; // Không làm gì nếu giá trị không đổi
 
                 input.val(newVal);
 
                 const price = parseFloat(input.attr("data-cart-detail-price"));
                 const productId = input.attr("data-cart-detail-id");
 
-                const priceElement = $(`p.line-total`).filter(function () {
-                    return $(this).closest('tr').find(`input[data-cart-detail-id='${productId}']`).length > 0;
-                });
+                // Tìm đúng dòng (tr) và cập nhật tổng tiền của dòng (line-total)
+                const priceElement = button.closest('tr').find('p.line-total');
 
                 if (priceElement.length) {
                     const newPrice = price * newVal;
                     priceElement.text(formatCurrency(newPrice.toFixed(0)) + " đ");
                 }
 
-                // Gửi AJAX
+                // Gửi AJAX POST đến server để cập nhật giỏ hàng
                 $.ajax({
                     url: "/cart/update",
                     type: "POST",
@@ -234,15 +235,23 @@
                     success: function (response) {
                         console.log("Cập nhật giỏ hàng thành công:", response);
 
+                        // Cập nhật tổng tiền của toàn bộ giỏ hàng
                         if (response.totalPrice !== undefined) {
                             $("p[data-cart-total-price]").each(function () {
                                 $(this).text(formatCurrency(response.totalPrice.toFixed(0)) + " đ");
                             });
                         }
                     },
-                    error: function () {
+                    error: function (xhr) {
+                        console.error("Lỗi AJAX:", xhr.responseText);
                         alert("Cập nhật giỏ hàng thất bại, vui lòng thử lại");
-                        input.val(oldValue); // Rollback nếu lỗi
+                        input.val(oldValue); // Rollback (trả lại giá trị cũ) nếu lỗi
+
+                        // Rollback giá của dòng
+                         if (priceElement.length) {
+                            const oldLinePrice = price * oldValue;
+                            priceElement.text(formatCurrency(oldLinePrice.toFixed(0)) + " đ");
+                        }
                     }
                 });
             });

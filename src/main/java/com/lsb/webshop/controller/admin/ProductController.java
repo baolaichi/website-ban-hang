@@ -28,12 +28,10 @@ import lombok.extern.slf4j.Slf4j;
 @Slf4j
 @RequestMapping("/admin")
 public class ProductController {
-    private final UploadService uploadService;
     private final ProductService productService;
     private final CategoryService categoryService;
 
-    public ProductController(UploadService uploadService, ProductService productService, CategoryService categoryService) {
-        this.uploadService = uploadService;
+    public ProductController( ProductService productService, CategoryService categoryService) {
         this.productService = productService;
         this.categoryService = categoryService;
     }
@@ -55,37 +53,6 @@ public class ProductController {
         mav.addObject("categories", categoryService.getAllCategorys());
 
         return mav;
-    }
-
-
-    @PostMapping("/product/create")
-    public ModelAndView create(@ModelAttribute("newProduct") @Valid Product sp,
-                               BindingResult productBindingResult,
-                               @RequestParam("productFile") MultipartFile file) {
-
-        ModelAndView mav = new ModelAndView();
-
-        if (productBindingResult.hasErrors()) {
-            mav.setViewName("/admin/product/create");
-            mav.addObject("categories", categoryService.getAllCategorys());
-            return mav;
-        }
-
-        try {
-            String productImg = this.uploadService.HandleSaveUploadFile(file, "product");
-            sp.setImage(productImg);
-            this.productService.SaveProduct(sp);
-
-            mav.setViewName("redirect:/admin/product");
-            return mav;
-
-        } catch (IllegalArgumentException e) {
-            productBindingResult.rejectValue("name", "error.newProduct", e.getMessage());
-
-            mav.setViewName("/admin/product/create");
-            mav.addObject("categories", categoryService.getAllCategorys());
-            return mav;
-        }
     }
 
 
@@ -151,46 +118,71 @@ public class ProductController {
         return mav;
     }
 
-    // Xử lý cập nhật sản phẩm
-    @PostMapping("/product/update")
-    public ModelAndView postUpdateProduct(
-            @ModelAttribute("updateProduct") @Valid Product sp,
-            BindingResult productBindingResult,
-            @RequestParam("lsb") MultipartFile file) {
+    // Dùng chung để load view + categories khi có lỗi
+    private ModelAndView prepareErrorView(String viewName, BindingResult bindingResult) {
+        ModelAndView mav = new ModelAndView(viewName);
+        mav.addObject("categories", categoryService.getAllCategorys());
+        mav.addAllObjects(bindingResult.getModel());
+        return mav;
+    }
 
-        ModelAndView mav = new ModelAndView();
+    @PostMapping("/product/create")
+    public ModelAndView postCreateProduct(
+            @ModelAttribute("newProduct") @Valid Product sp,
+            BindingResult bindingResult,
+            @RequestParam("productFile") MultipartFile file) {
 
-        if (productBindingResult.hasErrors()) {
-            mav.addObject("categories", categoryService.getAllCategorys());
-            mav.setViewName("/admin/product/update");
-            return mav;
+        if (bindingResult.hasErrors()) {
+            return prepareErrorView("/admin/product/create", bindingResult);
         }
 
         try {
-            productService.updateProductWithImage(sp, file);
-            mav.setViewName("redirect:/admin/product");
-            return mav;
+            productService.createProduct(sp, file);
+            return new ModelAndView("redirect:/admin/product");
 
         } catch (IllegalArgumentException e) {
-            String[] parts = e.getMessage().split("\\|", 2);
-            if (parts.length == 2) {
-                productBindingResult.rejectValue(parts[0], "error.updateProduct", parts[1]);
-            } else {
-                productBindingResult.reject("error.updateProduct", e.getMessage());
-            }
-            mav.addObject("categories", categoryService.getAllCategorys());
-            mav.setViewName("/admin/product/update");
-            return mav;
+            handleServiceException(e, bindingResult);
+            return prepareErrorView("/admin/product/create", bindingResult);
 
         } catch (Exception e) {
-            productBindingResult.reject("globalError", "Đã xảy ra lỗi khi cập nhật sản phẩm.");
-            log.error("[ProductController] Lỗi hệ thống: {}", e.getMessage(), e);
-            mav.addObject("categories", categoryService.getAllCategorys());
-            mav.setViewName("/admin/product/update");
-            return mav;
+            bindingResult.reject("globalError", "Đã xảy ra lỗi khi tạo sản phẩm.");
+            return prepareErrorView("/admin/product/create", bindingResult);
         }
     }
 
+    @PostMapping("/product/update")
+    public ModelAndView postUpdateProduct(
+            @ModelAttribute("updateProduct") @Valid Product sp,
+            BindingResult bindingResult,
+            @RequestParam(value = "lsb", required = false) MultipartFile file) {
+
+        if (bindingResult.hasErrors()) {
+            return prepareErrorView("/admin/product/update", bindingResult);
+        }
+
+        try {
+            productService.updateProduct(sp.getId(), sp, file);
+            return new ModelAndView("redirect:/admin/product");
+
+        } catch (IllegalArgumentException e) {
+            handleServiceException(e, bindingResult);
+            return prepareErrorView("/admin/product/update", bindingResult);
+
+        } catch (Exception e) {
+            bindingResult.reject("globalError", "Đã xảy ra lỗi khi cập nhật sản phẩm.");
+            return prepareErrorView("/admin/product/update", bindingResult);
+        }
+    }
+
+    // Hàm xử lý lỗi trả từ service dạng "field|message"
+    private void handleServiceException(IllegalArgumentException e, BindingResult bindingResult) {
+        String[] parts = e.getMessage().split("\\|", 2);
+        if (parts.length == 2) {
+            bindingResult.rejectValue(parts[0], "error", parts[1]);
+        } else {
+            bindingResult.reject("error", e.getMessage());
+        }
+    }
 
 
 }

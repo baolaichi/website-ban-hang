@@ -29,24 +29,20 @@ public class CategoryController {
     public ModelAndView showAddCategoryForm() {
         ModelAndView modelAndView = new ModelAndView("admin/category/add");
         modelAndView.addObject("category", new Category());
-        return modelAndView;  // Tên template Thymeleaf: templates/category/add.html
+        return modelAndView;
     }
 
-   @PostMapping("/add")
+    @PostMapping("/add")
     public ModelAndView saveCategory(@ModelAttribute Category category) {
-    ModelAndView mav = new ModelAndView();
-
-    try {
+        ModelAndView mav = new ModelAndView("redirect:/admin/categories/add");
         Category saved = categoryService.saveCategory(category);
-        mav.addObject("success", "Thêm danh mục thành công: " + saved.getName());
-    } catch (Exception e) {
-        mav.addObject("error", "Thêm danh mục thất bại: " + e.getMessage());
-    }
+        if (saved != null) {
+            mav.addObject("success", "Thêm danh mục thành công: " + saved.getName());
+        } else {
+            mav.addObject("error", "Thêm danh mục thất bại");
+        }
 
-    // Điều hướng lại form thêm (giống redirect)
-    mav.setViewName("redirect:/admin/categories/add");
-
-    return mav;
+        return mav;
     }
 
 }

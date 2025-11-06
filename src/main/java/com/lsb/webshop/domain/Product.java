@@ -1,20 +1,13 @@
 package com.lsb.webshop.domain;
 
 import java.time.LocalDateTime;
+import java.util.HashSet;
+import java.util.Set;
 
+import jakarta.persistence.*;
 import org.hibernate.annotations.CreationTimestamp;
 import org.hibernate.annotations.UpdateTimestamp;
 
-import jakarta.persistence.Column;
-import jakarta.persistence.Entity;
-import jakarta.persistence.EnumType;
-import jakarta.persistence.Enumerated;
-import jakarta.persistence.GeneratedValue;
-import jakarta.persistence.GenerationType;
-import jakarta.persistence.Id;
-import jakarta.persistence.JoinColumn;
-import jakarta.persistence.ManyToOne;
-import jakarta.persistence.Table;
 import jakarta.validation.constraints.DecimalMin;
 import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.NotEmpty;
@@ -76,5 +69,9 @@ public class Product {
 
     private boolean deleted = false;
 
+    @OneToMany(mappedBy = "product")
+    private Set<Rating> ratings = new HashSet<>();
 
+    @OneToMany(mappedBy = "product")
+    private Set<ProductView> productViews = new HashSet<>();
 }

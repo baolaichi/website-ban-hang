@@ -40,48 +40,25 @@ public class UserController {
     }
 
 
-    @PostMapping(value = "/user/create")
-    public ModelAndView create(@ModelAttribute("newUser") @Valid User lsb,
-                               BindingResult newUserBindingResult,
-                               @RequestParam("avatarFile") MultipartFile file) {
-
-        ModelAndView mav = new ModelAndView();
-
-        if (newUserBindingResult.hasErrors()) {
-            mav.setViewName("/admin/user/create");
-            mav.addObject("roles", userService.getAllRoles());
-            return mav;
+    @PostMapping("/user/create")
+    public ModelAndView createUser(@ModelAttribute("newUser") @Valid User newUser,
+                                   BindingResult bindingResult,
+                                   @RequestParam("avatarFile") MultipartFile file) {
+        if (bindingResult.hasErrors()) {
+            return new ModelAndView("/admin/user/create")
+                    .addObject("roles", userService.getAllRoles());
         }
 
         try {
-            String avatar = this.uploadService.HandleSaveUploadFile(file, "avatar");
-            String hashPassword = this.passwordEncoder.encode(lsb.getPassword());
-
-            lsb.setAvatar(avatar);
-            lsb.setPassword(hashPassword);
-
-            Role selectedRole = userService.getRoleById(lsb.getRole().getId());
-            lsb.setRole(selectedRole);
-
-            userService.SaveUser(lsb);
-
-            // Redirect sau khi tạo thành công
-            mav.setViewName("redirect:/admin/user/");
-            return mav;
-
+            userService.createUser(newUser, file);
+            return new ModelAndView("redirect:/admin/user/");
         } catch (IllegalArgumentException e) {
-            mav.setViewName("/admin/user/create");
-            mav.addObject("errorMessage", e.getMessage());
-            mav.addObject("roles", userService.getAllRoles());
-            return mav;
-
-        } catch (Exception e) {
-            mav.setViewName("/admin/user/create");
-            mav.addObject("errorMessage", "Có lỗi xảy ra khi tạo người dùng.");
-            mav.addObject("roles", userService.getAllRoles());
-            return mav;
+            bindingResult.reject("error.newUser", e.getMessage());
+            return new ModelAndView("/admin/user/create")
+                    .addObject("roles", userService.getAllRoles());
         }
     }
+
 
 
     @GetMapping(value = "/user/")
@@ -132,46 +109,37 @@ public class UserController {
     }
 
 
-    @RequestMapping("/user/update/{id}")
+    @GetMapping("/user/update/{id}")
     public ModelAndView updateUserPage(@PathVariable Long id) {
-        User user = this.userService.findById(id);
+        User user = userService.getUserById(id);
+
+        if (user.getRole() == null) {
+            user.setRole(new Role());
+        }
 
         ModelAndView mav = new ModelAndView("/admin/user/update");
         mav.addObject("updateUser", user);
+        mav.addObject("roles", userService.getAllRoles());
         return mav;
     }
 
 
-    @RequestMapping(value = "/user/update/{id}", method = RequestMethod.POST)
-    public ModelAndView postUpdate(@ModelAttribute("updateUser") User user) {
+    @PostMapping("/user/update/{id}")
+    public ModelAndView postUpdate(@PathVariable Long id,
+                                   @ModelAttribute("updateUser") User user) {
         ModelAndView mav = new ModelAndView();
 
         try {
-            User upUser = this.userService.getUserById(user.getId());
-            if (upUser != null) {
-                upUser.setAddress(user.getAddress());
-                upUser.setFullName(user.getFullName());
-                upUser.setPhone(user.getPhone());
-                upUser.setRole(this.userService.getRoleByName(user.getRole().getName()));
-
-                this.userService.SaveUser(upUser);
-            }
-
-            mav.setViewName("redirect:/admin/user/");
-            return mav;
-
-        } catch (IllegalArgumentException e) {
+            userService.updateUser(user, null); // không update avatar
+            return new ModelAndView("redirect:/admin/user/");
+        } catch (RuntimeException e) {
             mav.setViewName("/admin/user/update");
             mav.addObject("errorMessage", e.getMessage());
             mav.addObject("updateUser", user);
-            return mav;
-
-        } catch (Exception e) {
-            mav.setViewName("/admin/user/update");
-            mav.addObject("errorMessage", "Đã xảy ra lỗi khi cập nhật người dùng.");
-            mav.addObject("updateUser", user);
+            mav.addObject("roles", userService.getAllRoles());
             return mav;
         }
     }
+
 
 }

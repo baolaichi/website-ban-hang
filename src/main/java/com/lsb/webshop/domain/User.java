@@ -1,19 +1,13 @@
 package com.lsb.webshop.domain;
 
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 
+import jakarta.persistence.*;
 import org.hibernate.annotations.SQLDelete;
 import org.hibernate.annotations.Where;
 
-import jakarta.persistence.Entity;
-import jakarta.persistence.GeneratedValue;
-import jakarta.persistence.GenerationType;
-import jakarta.persistence.Id;
-import jakarta.persistence.JoinColumn;
-import jakarta.persistence.ManyToOne;
-import jakarta.persistence.OneToMany;
-import jakarta.persistence.OneToOne;
-import jakarta.persistence.Table;
 import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
@@ -55,9 +49,19 @@ public class User {
     @JoinColumn(name = "role_id")
     private Role role;
 
-    @OneToMany(mappedBy = "user")
-    private List<Order> orders;
-
-    @OneToOne(mappedBy = "user")
+    @OneToOne(mappedBy = "user", cascade = CascadeType.ALL, orphanRemoval = true)
     private Cart cart;
+
+    @OneToMany(mappedBy = "user")
+    private Set<Rating> ratings = new HashSet<>();
+
+    @OneToMany(mappedBy = "user")
+    private Set<ProductView> productViews = new HashSet<>();
+
+    @OneToMany(mappedBy = "user")
+    private Set<ChatLog> chatLogs = new HashSet<>();
+
+    // Bạn cũng nên có quan hệ với Order và Cart
+    @OneToMany(mappedBy = "user")
+    private Set<Order> orders = new HashSet<>();
 }

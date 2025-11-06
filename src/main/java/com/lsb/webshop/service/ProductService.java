@@ -5,6 +5,7 @@ import java.util.List;
 import java.util.Optional;
 import java.util.stream.Collectors;
 
+import com.lsb.webshop.domain.dto.ProductDTO;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 
@@ -53,34 +54,42 @@ public class ProductService {
         this.uploadService = uploadService;
     }
 
-    // Lưu hoặc cập nhật sản phẩm
-    public Product SaveProduct(Product product) {
-        String productName = product.getName();
-
-        try {
-            boolean isExisted;
-
-            if (product.getId() != null) {
-                isExisted = productRepository.existsByNameAndIdNot(productName, product.getId());
-            } else {
-                isExisted = productRepository.existsByName(productName);
-            }
-
-            if(isExisted){
-                log.warn("[SaveProduct] Tên sản phẩm '{}' đã tồn tại", productName);
-                throw new IllegalArgumentException("Tên sản phẩm đã tồn tại");
-            }
-
-            Product savedProduct = productRepository.save(product);
-            log.info("[SaveProduct] Sản phẩm '{}' đã được lưu thành công", savedProduct.getName());
-            return savedProduct;
-        }catch (IllegalArgumentException e) {
-            log.warn("[SaveProduct] Lỗi khi lưu sản phẩm: {}", e.getMessage());
-            throw e;
-        } catch (Exception e) {
-            log.error("[SaveProduct] Lỗi hệ thống khi lưu sản phẩm '{}': {}", productName, e.getMessage(), e);
-            throw new RuntimeException("Đã xảy ra lỗi khi lưu sản phẩm", e);
+    public Product createProduct(Product product, MultipartFile file) {
+        if (file == null || file.isEmpty()) {
+            throw new IllegalArgumentException("image|Product image is required");
         }
+
+        if (productRepository.existsByName(product.getName())) {
+            throw new IllegalArgumentException("name|Tên sản phẩm đã tồn tại");
+        }
+
+        String productImg = uploadService.HandleSaveUploadFile(file, "product");
+        product.setImage(productImg);
+
+        Product savedProduct = productRepository.save(product);
+        log.info("[CreateProduct] Sản phẩm '{}' đã được tạo thành công", savedProduct.getName());
+        return savedProduct;
+    }
+
+    public Product updateProduct(Long id, Product updatedProduct, MultipartFile file) {
+        Product existingProduct = productRepository.findById(id)
+                .orElseThrow(() -> new IllegalArgumentException("globalError|Không tìm thấy sản phẩm với ID: " + id));
+
+        if (productRepository.existsByNameAndIdNot(updatedProduct.getName(), id)) {
+            throw new IllegalArgumentException("name|Tên sản phẩm đã tồn tại");
+        }
+
+        if (file != null && !file.isEmpty()) {
+            String productImg = uploadService.HandleSaveUploadFile(file, "product");
+            updatedProduct.setImage(productImg);
+        } else {
+            updatedProduct.setImage(existingProduct.getImage());
+        }
+
+        updatedProduct.setId(id);
+        Product savedProduct = productRepository.save(updatedProduct);
+        log.info("[UpdateProduct] Sản phẩm '{}' đã được cập nhật thành công", savedProduct.getName());
+        return savedProduct;
     }
 
     // Lấy tất cả sản phẩm (kể cả đã xóa mềm)
@@ -148,17 +157,19 @@ public class ProductService {
         return factories;
     }
 
-    public List<Product> searchProducts(String keyword) {
-        if (keyword == null || keyword.trim().length() < 2) {
-        log.warn("[searchProducts] Từ khóa quá ngắn hoặc null: '{}'", keyword);
-        return Collections.emptyList();
-        }
-        String trimmed = keyword.trim();
-        log.debug("[searchProducts] Tìm kiếm sản phẩm với từ khóa: '{}'", trimmed);
-        List<Product> results = productRepository.findByNameContainingIgnoreCase(trimmed);
-        log.info("[searchProducts] Tìm thấy {} sản phẩm với từ khóa '{}'", results.size(), trimmed);
 
-        return results;
+
+    public List<ProductDTO> searchProductsDTO(String keyword) {
+        if (keyword == null || keyword.trim().length() < 2) {
+            return List.of();
+        }
+
+        String trimmed = keyword.trim();
+        List<Product> results = productRepository.findByNameContainingIgnoreCase(trimmed);
+
+        return results.stream()
+                .map(p -> new ProductDTO(p.getId(), p.getName(), p.getShortDesc()))
+                .collect(Collectors.toList());
     }
 
     public Product getProductById(Long id) {
@@ -193,7 +204,7 @@ public class ProductService {
                 newCartDetail.setCart(cart);
                 newCartDetail.setProduct(realProduct);
                 newCartDetail.setPrice(realProduct.getPrice());
-                newCartDetail.setQuantity(1);
+                newCartDetail.setQuantity(1L);
 
                 this.cartDetailRepository.save(newCartDetail);
 
@@ -270,120 +281,6 @@ public class ProductService {
     }
 
     }
-
-    public void removeProductCart(long cartDetailId, HttpSession session) {
-    try {
-        log.info("Bắt đầu xóa sản phẩm trong giỏ hàng với cartDetailId={}", cartDetailId);
-
-        Optional<CartDetail> cartDetailOptional = cartDetailRepository.findById(cartDetailId);
-
-        if (cartDetailOptional.isEmpty()) {
-            log.warn("Không tìm thấy chi tiết giỏ hàng với ID = {}. Hủy thao tác xóa.", cartDetailId);
-            return;
-        }
-
-        CartDetail cartDetail = cartDetailOptional.get();
-        Cart cart = cartDetail.getCart();
-
-        cartDetailRepository.deleteById(cartDetailId);
-        log.info("Đã xóa thành công CartDetail có ID = {}", cartDetailId);
-
-        if (cart != null) {
-            int currentSum = cart.getSum();
-            log.debug("Số lượng sản phẩm hiện tại trong giỏ là {}", currentSum);
-
-            if (currentSum > 1) {
-                cart.setSum(currentSum - 1);
-                cartRepository.save(cart);
-                session.setAttribute("sum", cart.getSum());
-                log.info("Đã cập nhật số lượng sản phẩm trong giỏ xuống còn {} cho giỏ hàng có ID = {}", cart.getSum(), cart.getId());
-            } else {
-                cartRepository.deleteById(cart.getId());
-                session.setAttribute("sum", 0);
-                log.info("Giỏ hàng có ID = {} đã bị xóa do không còn sản phẩm nào.", cart.getId());
-            }
-        } else {
-            log.error("Không thể xác định giỏ hàng tương ứng với CartDetail ID = {}", cartDetailId);
-        }
-
-    } catch (Exception e) {
-        log.error("Lỗi khi xóa sản phẩm khỏi giỏ hàng với CartDetail ID = {}: {}", cartDetailId, e.getMessage(), e);
-    }
-    }
-
-    public void updateCartBeforeCheckout(List<CartDetail> cartDetails) {
-        for(CartDetail cartDetail : cartDetails){
-            Optional<CartDetail> cdOptional = this.cartDetailRepository.findById(cartDetail.getId());
-            if(cdOptional.isPresent()){
-                CartDetail currentCartDetail = cdOptional.get();
-                currentCartDetail.setQuantity(cartDetail.getQuantity());
-                this.cartDetailRepository.save(currentCartDetail);
-            }
-        }
-    }
-
-    public void handlePlaceOrder(
-            User user, HttpSession session,
-            String receiverName, String receiverAddress, String receiverPhone, Double totalPrice) {
-
-        // create order
-        Order order = new Order();
-        order.setUser(user);
-        order.setReceiverName(receiverName);
-        order.setReceiverAddress(receiverAddress);
-        order.setReceiverPhone(receiverPhone);
-        order.setTotalPrice(totalPrice);
-        order = this.orderRepository.save(order);
-
-        // create orderDetail
-
-        // step 1: get cart by user
-        Cart cart = this.cartRepository.findByUser(user);
-        if (cart != null) {
-            List<CartDetail> cartDetails = cart.getCartDetails();
-
-            if (cartDetails != null) {
-                for (CartDetail cd : cartDetails) {
-                    OrderDetail orderDetail = new OrderDetail();
-                    orderDetail.setOrder(order);
-                    orderDetail.setProduct(cd.getProduct());
-                    orderDetail.setPrice(cd.getPrice());
-                    orderDetail.setQuantity(cd.getQuantity());
-
-                    this.orderDetailRepository.save(orderDetail);
-                }
-
-                // step 2: delete cart_detail and cart
-                for (CartDetail cd : cartDetails) {
-                    this.cartDetailRepository.deleteById(cd.getId());
-                }
-
-                this.cartRepository.deleteById(cart.getId());
-
-                // step 3 : update session
-                session.setAttribute("sum", 0);
-            }
-        }
-
-    }
-
-
-    public Product updateProductWithImage(Product product, MultipartFile file) {
-    try {
-        if (file != null && !file.isEmpty()) {
-            String productImg = uploadService.HandleSaveUploadFile(file, "product");
-            product.setImage(productImg);
-        } else {
-            Product oldProduct = getProductById(product.getId());
-            product.setImage(oldProduct.getImage());
-        }
-
-        return SaveProduct(product); // Reuse your existing SaveProduct with validation
-    } catch (Exception e) {
-        log.error("[ProductService] updateProductWithImage - Lỗi khi cập nhật sản phẩm: {}", e.getMessage(), e);
-        throw e; // để controller xử lý
-    }
-}
 
 
     }

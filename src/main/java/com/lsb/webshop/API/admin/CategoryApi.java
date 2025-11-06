@@ -23,9 +23,8 @@ public class CategoryApi {
         this.categoryService = categoryService;
     }
 
-@   PostMapping
+    @PostMapping("/add")
     public ResponseEntity<Category> createCategory(@RequestBody Category category) {
-        log.info("[CategoryController] createCategory() - API Request: {}", category.getName());
         Category savedCategory = categoryService.saveCategory(category);
         return ResponseEntity.ok(savedCategory);
     }

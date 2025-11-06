@@ -34,41 +34,29 @@ public class AccountController {
 
     @GetMapping("/profile")
     public ModelAndView viewProfile(Principal principal) {
-        String userName = principal.getName();
-        UserDTO userDTO = userService.getUserByUserName(userName);
+        UserDTO userDTO = userService.getUserByEmail(principal.getName());
 
         ModelAndView mav = new ModelAndView("client/account/profile");
         mav.addObject("user", userDTO);
-
         return mav;
     }
-
 
     @PostMapping("/update")
-    public ModelAndView updateAccount(@ModelAttribute UserDTO userDTO,
-                                      @RequestParam("avatarFile") MultipartFile avatarFile,
-                                      HttpServletRequest request) {
-        ModelAndView mav = new ModelAndView("client/account/profile");
+    public ModelAndView updateProfile(@ModelAttribute("user") UserDTO userDTO,
+                                      @RequestParam(value = "avatarFile", required = false) MultipartFile avatarFile,
+                                      Principal principal) {
+        ModelAndView mav = new ModelAndView();
 
         try {
-            if (!avatarFile.isEmpty()) {
-                String savedFileName = uploadService.HandleSaveUploadFile(avatarFile, "avatar");
-                userDTO.setAvatarUrl(savedFileName);
-                request.getSession().setAttribute("avatar", savedFileName);
-            }
-
-            userService.updateAccount(userDTO);
+            UserDTO updated = userService.updateProfile(userDTO, avatarFile, principal.getName());
+            mav.setViewName("redirect:/account/profile?success");
+            return mav;
+        } catch (RuntimeException e) {
+            mav.setViewName("client/account/profile");
+            mav.addObject("errorMessage", e.getMessage());
             mav.addObject("user", userDTO);
-            mav.addObject("success", "Cập nhật thành công!");
-
-        } catch (Exception e) {
-            e.printStackTrace();
-            mav.addObject("user", userDTO);
-            mav.addObject("error", "Đã xảy ra lỗi: " + e.getMessage());
+            return mav;
         }
-
-        return mav;
     }
-
 
 }

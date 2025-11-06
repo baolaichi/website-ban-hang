@@ -3,8 +3,10 @@ package com.lsb.webshop.controller.client;
 
 import java.security.Principal;
 import java.util.List;
+import java.util.Map;
 import java.util.stream.Collectors;
 
+import com.lsb.webshop.service.HomeService;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -27,25 +29,27 @@ import org.springframework.web.servlet.ModelAndView;
 public class HomePageController {
     private final ProductService productService;
     private final UserService userService;
+    private final HomeService homeService;
 
-    public HomePageController(ProductService productService, UserService userService) {
+    public HomePageController(ProductService productService, UserService userService, HomeService homeService) {
         this.productService = productService;
         this.userService = userService;
+        this.homeService = homeService;
     }
 
     @GetMapping("/")
-    public ModelAndView getMethodName(HttpSession session, Principal principal) {
+    public ModelAndView homepage(HttpSession session, Principal principal) {
         ModelAndView mav = new ModelAndView("client/homepage/show");
 
-        List<Product> products = this.productService.getAllActiveProducts();
-        mav.addObject("products", products);
+        Map<String, Object> data = homeService.getHomepageData(principal);
 
-        // Nếu đã đăng nhập thì lấy thông tin user
-        if (principal != null) {
-            String username = principal.getName(); // lấy username hiện tại
-            var user = userService.findByUsername(username);
-            session.setAttribute("fullName", user.getFullName());
-            session.setAttribute("avatar", user.getAvatar());
+        // Set sản phẩm
+        mav.addObject("products", data.get("products"));
+
+        // Set thông tin user nếu có
+        if (data.containsKey("userFullName")) {
+            session.setAttribute("fullName", data.get("userFullName"));
+            session.setAttribute("avatar", data.get("userAvatar"));
         }
 
         return mav;
@@ -104,19 +108,10 @@ public class HomePageController {
     }
 
 
-    @GetMapping("/api/search")
-    @ResponseBody
+    @GetMapping("/search")
     public List<ProductDTO> searchProducts(@RequestParam("keyword") String keyword) {
-        if (keyword == null || keyword.trim().length() < 2) {
-            return List.of();
-        }
-
-        List<Product> products = productService.searchProducts(keyword);
-        return products.stream()
-                .map(product -> new ProductDTO(product.getId(), product.getName(), product.getShortDesc()))
-                .collect(Collectors.toList());
+        return productService.searchProductsDTO(keyword);
     }
-
 
 }
 

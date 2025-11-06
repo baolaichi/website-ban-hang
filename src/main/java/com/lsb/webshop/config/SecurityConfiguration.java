@@ -1,4 +1,4 @@
-package com.lsb.webshop.config;
+package com.lsb.webshop.config; // (Giữ nguyên package của bạn)
 
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -19,35 +19,43 @@ public class SecurityConfiguration {
 
     // Cấu hình bảo mật cho ứng dụng
 
-   @Bean
-public SecurityFilterChain securityFilterChain(HttpSecurity http, CustomSuccessHandler successHandler) throws Exception {
-    http
-        .authorizeHttpRequests(auth -> auth
-            .requestMatchers("/css/**", "/js/**", "/images/**").permitAll()
-            .requestMatchers("/", "/register", "/login").permitAll()
-            .requestMatchers("/products/**").permitAll()
-            .requestMatchers("/admin/**").hasRole("ADMIN")
-            .requestMatchers("/cart/**", "/checkout/**").authenticated()
-            .requestMatchers("/account/**").authenticated()
-            .anyRequest().permitAll()
-        )
-            .formLogin(form -> form
-            .loginPage("/login")
-            .loginProcessingUrl("/login")
-            .successHandler(customSuccessHandler) // gọi bean CustomSuccessHandler
-            .failureUrl("/login?error=true")
-            .permitAll()
-        )
-        .logout(logout -> logout
-            .logoutUrl("/logout")
-            .logoutSuccessUrl("/login?logout")
-            .permitAll()
-        )
-        .exceptionHandling(ex -> ex.accessDeniedPage("/access-deny"));
+    @Bean
+    public SecurityFilterChain securityFilterChain(HttpSecurity http, CustomSuccessHandler successHandler) throws Exception {
+        http
+                // ===== BẮT ĐẦU PHẦN THÊM MỚI =====
+                // Vô hiệu hóa kiểm tra CSRF cho các API
+                // Đây là dòng sửa lỗi 405 (Method Not Allowed) cho API chat
+                .csrf(csrf ->
+                        csrf.ignoringRequestMatchers("/api/**")
+                )
+                // ===== KẾT THÚC PHẦN THÊM MỚI =====
 
-    return http.build();
-}
+                // Phần cấu hình cũ của bạn (giữ nguyên)
+                .authorizeHttpRequests(auth -> auth
+                        .requestMatchers("/css/**", "/js/**", "/images/**").permitAll()
+                        .requestMatchers("/", "/register", "/login").permitAll()
+                        .requestMatchers("/products/**").permitAll()
+                        .requestMatchers("/admin/**").hasRole("ADMIN")
+                        .requestMatchers("/cart/**", "/checkout/**").authenticated()
+                        .requestMatchers("/account/**").authenticated()
+                        .anyRequest().permitAll()
+                )
+                .formLogin(form -> form
+                        .loginPage("/login")
+                        .loginProcessingUrl("/login")
+                        .successHandler(customSuccessHandler) // gọi bean CustomSuccessHandler
+                        .failureUrl("/login?error=true")
+                        .permitAll()
+                )
+                .logout(logout -> logout
+                        .logoutUrl("/logout")
+                        .logoutSuccessUrl("/login?logout")
+                        .permitAll()
+                )
+                .exceptionHandling(ex -> ex.accessDeniedPage("/access-deny"));
 
+        return http.build();
+    }
 
 
     @Bean
