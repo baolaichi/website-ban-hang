@@ -1,80 +1,120 @@
 <!DOCTYPE html>
-<html lang="en" xmlns:th="http://www.thymeleaf.org">
-
+<html lang="vi" xmlns:th="http://www.thymeleaf.org">
 <head>
-    <meta charset="UTF-8">
+    <meta charset="utf-8" />
     <meta http-equiv="X-UA-Compatible" content="IE=edge" />
     <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no" />
-    <meta name="description" content="Hỏi Dân IT - Dự án laptopshop" />
-    <meta name="author" content="Hỏi Dân IT" />
-    <title>Manager Orders - Hỏi Dân IT</title>
-    <link href="/css/styles.css" rel="stylesheet" />
+    <title th:text="${title}">Quản lý Đơn hàng</title>
+
+    <link href="https://cdn.jsdelivr.net/npm/simple-datatables@7.1.2/dist/style.min.css" rel="stylesheet" />
+    <link th:href="@{/css/styles.css}" rel="stylesheet" />
     <script src="https://use.fontawesome.com/releases/v6.3.0/js/all.js" crossorigin="anonymous"></script>
+
+    <style>
+        .product-thumbnail {
+            width: 60px;
+            height: 60px;
+            object-fit: cover;
+            border-radius: 5px;
+        }
+    </style>
 </head>
 
 <body class="sb-nav-fixed">
+<!-- Header -->
 <div th:replace="~{admin/layout/header :: header}"></div>
 
 <div id="layoutSidenav">
+    <!-- Sidebar -->
     <div th:replace="~{admin/layout/sidebar :: sidebar}"></div>
 
     <div id="layoutSidenav_content">
         <main>
             <div class="container-fluid px-4">
-                <h1 class="mt-4">Manage Orders</h1>
+                <h1 class="mt-4" th:text="${title}">Quản lý Đơn hàng</h1>
                 <ol class="breadcrumb mb-4">
                     <li class="breadcrumb-item"><a th:href="@{/admin}">Dashboard</a></li>
-                    <li class="breadcrumb-item active">Order</li>
+                    <li class="breadcrumb-item active">Danh sách Đơn hàng</li>
                 </ol>
 
-                <div class="mt-5">
-                    <div class="row">
-                        <div class="col-12 mx-auto">
-                            <div class="d-flex">
-                                <h3>Table Orders</h3>
-                            </div>
+                <!-- (Hiển thị thông báo nếu có) -->
+                <div th:if="${successMessage}" class="alert alert-success" role="alert"
+                     th:text="${successMessage}"></div>
+                <div th:if="${errorMessage}" class="alert alert-danger" role="alert"
+                     th:text="${errorMessage}"></div>
 
-                            <hr />
-                            <table class="table table-bordered table-hover">
-                                <thead>
-                                <tr>
-                                    <th>ID</th>
-                                    <th>Total Price</th>
-                                    <th>User</th>
-                                    <th>Status</th>
-                                    <th>Action</th>
-                                </tr>
-                                </thead>
-                                <tbody>
-                                <tr th:each="order : ${orders}">
-                                    <td th:text="${order.id}"></td>
-                                    <!-- Hiển thị giá tiền có dấu phẩy phân tách hàng nghìn -->
-                                    <td th:text="${#numbers.formatDecimal(order.totalPrice, 0, 'POINT', 0, 'COMMA') + ' đ'}"></td>
-                                    <!-- Hoặc gọn hơn:
-                                    <td th:text="${#numbers.formatInteger(order.totalPrice, 'COMMA') + ' đ'}"></td>
-                                    -->
-                                    <td th:text="${order.user.fullName}"></td>
-                                    <td th:text="${order.status}"></td>
-                                    <td>
-                                        <a th:href="@{/admin/order/{id}(id=${order.id})}" class="btn btn-success">View</a>
-                                        <a th:href="@{/admin/order/update/{id}(id=${order.id})}" class="btn btn-warning mx-2">Update</a>
-                                        <a th:href="@{/admin/order/delete/{id}(id=${order.id})}" class="btn btn-danger">Delete</a>
-                                    </td>
-                                </tr>
-                                </tbody>
-                            </table>
-                        </div>
+                <!-- Bảng Đơn hàng -->
+                <div class="card mb-4">
+                    <div class="card-header">
+                        <i class="fas fa-table me-1"></i>
+                        Tất cả Đơn hàng
+                    </div>
+                    <div class="card-body">
+                        <table id="ordersTable" class="table table-hover">
+                            <thead>
+                            <tr>
+                                <th>Mã Đơn</th>
+                                <th>Ngày Đặt</th>
+                                <th>Khách hàng</th>
+                                <th>Tổng Tiền</th>
+                                <th>Trạng thái</th>
+                                <th>Hành động</th>
+                            </tr>
+                            </thead>
+                            <tbody>
+                            <tr th:if="${#lists.isEmpty(orders)}">
+                                <td colspan="6" class="text-center">Không có đơn hàng nào.</td>
+                            </tr>
+
+                            <tr th:each="order : ${orders}">
+                                <td th:text="'#' + ${order.id}">#12345</td>
+                                <td th:text="${#temporals.format(order.createdAt, 'dd-MM-yyyy HH:mm')}"></td>
+                                <td th:text="${order.receiverName}"></td>
+                                <td th:text="${#numbers.formatDecimal(order.totalPrice, 0, 'COMMA', 0, 'POINT')} + ' đ'"></td>
+                                <td>
+                                    <!-- (Badge màu mè cho status) -->
+                                    <span class="badge"
+                                          th:classappend="${order.status == 'PENDING' ? 'bg-warning text-dark' :
+                                                                   (order.status == 'PROCESSING' ? 'bg-info text-dark' :
+                                                                   (order.status == 'DELIVERING' ? 'bg-primary' :
+                                                                   (order.status == 'COMPLETED' ? 'bg-success' :
+                                                                   (order.status == 'CANCELED' ? 'bg-danger' : 'bg-secondary'))))}"
+                                          th:text="${order.status}">
+                                            </span>
+                                </td>
+                                <td>
+                                    <a th:href="@{/admin/order/{id}(id=${order.id})}" class="btn btn-sm btn-outline-primary">
+                                        <i class="fas fa-eye"></i> Xem
+                                    </a>
+                                </td>
+                            </tr>
+                            </tbody>
+                        </table>
                     </div>
                 </div>
+
             </div>
         </main>
+
+        <!-- Footer -->
         <div th:replace="~{admin/layout/footer :: footer}"></div>
     </div>
 </div>
 
-<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.2.3/dist/js/bootstrap.bundle.min.js"
-        crossorigin="anonymous"></script>
-<script src="/js/scripts.js"></script>
-</body>
+<!-- JS Scripts -->
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.2.3/dist/js/bootstrap.bundle.min.js" crossorigin="anonymous"></script>
+<script th:src="@{/js/scripts.js}"></script>
+<!-- (JS cho biểu đồ không cần ở đây) -->
+<script src="https://cdn.jsdelivr.net/npm/simple-datatables@7.1.2/dist/umd/simple-datatables.min.js" crossorigin="anonymous"></script>
 
+<!-- (Chèn JS để kích hoạt DataTables) -->
+<script>
+    window.addEventListener('DOMContentLoaded', event => {
+        const ordersTable = document.getElementById('ordersTable');
+        if (ordersTable) {
+            new simpleDatatables.DataTable(ordersTable);
+        }
+    });
+</script>
+</body>
 </html>

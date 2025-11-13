@@ -4,38 +4,145 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>LSB-163</title>
-
-    <!-- Google Web Fonts -->
+    <!-- (Meta và CSS của bạn giữ nguyên) -->
+    <meta name="_csrf" th:content="${_csrf.token}" />
+    <meta name="_csrf_header" th:content="${_csrf.headerName}" />
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Open+Sans:wght@400;600&family=Raleway:wght@600;800&display=swap" rel="stylesheet">
-
-    <!-- Icon Font Stylesheet -->
     <link rel="stylesheet" href="https://use.fontawesome.com/releases/v5.15.4/css/all.css"/>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.4.1/font/bootstrap-icons.css" rel="stylesheet">
-
-    <!-- Libraries Stylesheet -->
     <link href="/client/lib/lightbox/css/lightbox.min.css" rel="stylesheet">
     <link href="/client/lib/owlcarousel/assets/owl.carousel.min.css" rel="stylesheet">
-
-    <!-- Customized Bootstrap Stylesheet -->
     <link href="/client/css/bootstrap.min.css" rel="stylesheet">
-
-    <!-- Template Stylesheet -->
     <link href="/client/css/style.css" rel="stylesheet">
+
+    <style>
+        :root{
+          --bg: #ffffff;
+          --muted: #f5f5f6;
+          --chip-border: #e9e9ea;
+          --text: #111827;
+          --accent: #0f172a;
+          --card-radius: 16px;
+          --chip-radius: 10px;
+          --gap: 16px;
+          font-family: "Inter", system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial;
+        }
+
+        body{
+          margin: 0;
+          background: var(--bg);
+          color: var(--text);
+          padding: 28px;
+          -webkit-font-smoothing:antialiased;
+          -moz-osx-font-smoothing:grayscale;
+        }
+
+        h2.section-title{
+          margin: 8px 0 18px;
+          font-size: 28px;
+          font-weight: 700;
+        }
+
+        /* Brand chips */
+        .brand-row{
+          display:flex;
+          gap:12px;
+          flex-wrap:wrap;
+          align-items:center;
+          margin-bottom:36px;
+        }
+        .brand-chip{
+          display:inline-flex;
+          align-items:center;
+          justify-content:center;
+          padding:12px 18px;
+          border-radius: var(--chip-radius);
+          background: #fff;
+          border:1px solid var(--chip-border);
+          box-shadow: 0 1px 0 rgba(0,0,0,0.02);
+          min-width: 110px;
+          height:56px;
+          cursor:pointer;
+          transition: transform .12s ease, box-shadow .12s ease;
+        }
+        .brand-chip img{
+          max-height:28px;
+          max-width:100%;
+          object-fit:contain;
+          display:block;
+        }
+        .brand-chip:active,
+        .brand-chip:hover{
+          transform: translateY(-3px);
+          box-shadow: 0 8px 18px rgba(12,12,16,0.06);
+        }
+
+        /* Categories grid */
+        .categories{
+          display:grid;
+          grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+          gap:20px;
+          align-items:stretch;
+        }
+
+        .card{
+          background: var(--muted);
+          border-radius: 22px;
+          padding:18px;
+          display:flex;
+          flex-direction:column;
+          align-items:center;
+          justify-content:flex-start;
+          min-height:170px;
+          box-shadow: 0 1px 0 rgba(0,0,0,0.02);
+        }
+        .card .thumb{
+          width: 110px;
+          height: 80px;
+          border-radius: 8px;
+          background: #ffffff;
+          display:flex;
+          align-items:center;
+          justify-content:center;
+          overflow:hidden;
+          margin-bottom:14px;
+        }
+        .card .thumb img{
+          width: 100%;
+          height: 100%;
+          object-fit:contain;
+          display:block;
+        }
+        .card .title{
+          font-size:16px;
+          font-weight:600;
+          color:var(--accent);
+          text-align:center;
+        }
+
+        /* small screens adjustments */
+        @media (max-width:520px){
+          body{ padding:16px; }
+          .brand-chip{ min-width:90px; height:48px; padding:10px; }
+          .card{ padding:14px; min-height:150px; border-radius:14px; }
+          .card .thumb{ width:90px; height:60px; margin-bottom:10px; }
+        }
+    </style>
+
 </head>
 <body>
 
-<!-- Spinner Start -->
+<!-- Spinner (Giữ nguyên) -->
 <div id="spinner" class="show w-100 vh-100 bg-white position-fixed translate-middle top-50 start-50  d-flex align-items-center justify-content-center">
     <div class="spinner-grow text-primary" role="status"></div>
 </div>
-<!-- Spinner End -->
 
-<!-- Header include -->
+<!-- Header (Giữ nguyên) -->
 <div th:replace="~{client/layout/header :: header}"></div>
 
-<!-- Modal Search Start -->
+<!-- Modal Search (Giữ nguyên) -->
 <div class="modal fade" id="searchModal" tabindex="-1" aria-labelledby="exampleModalLabel" aria-hidden="true">
     <div class="modal-dialog modal-fullscreen">
         <div class="modal-content rounded-0">
@@ -43,27 +150,183 @@
                 <h5 class="modal-title" id="exampleModalLabel">Search by keyword</h5>
                 <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
             </div>
-            
+
             <div class="modal-body d-flex align-items-center flex-column">
-                <!-- Input tìm kiếm -->
                 <div class="input-group w-75 mx-auto d-flex mb-4">
                     <input id="search-keyword" type="search" class="form-control p-3" placeholder="keywords" aria-describedby="search-icon-1">
                     <span id="search-icon-1" class="input-group-text p-3"><i class="fa fa-search"></i></span>
                 </div>
-
-                <!-- Kết quả -->
                 <div id="search-results" class="w-75" style="max-height: 300px; overflow-y: auto;"></div>
             </div>
         </div>
     </div>
 </div>
-<!-- Modal Search End -->
 
-
-<!-- Banner include -->
+<!-- Banner (Giữ nguyên) -->
 <div th:replace="~{client/layout/banner :: banner}"></div>
 
+<!-- Chatbot (Giữ nguyên) -->
 <div th:replace="~{client/layout/chatbot :: chatbot}"></div>
+
+<!-- ===== PHẦN GỢI Ý SẢN PHẨM (AI RECOMMENDATION) ===== -->
+<div class="container-fluid py-5 bg-light"
+     th:if="${recommendedProducts != null AND not #lists.isEmpty(recommendedProducts)}">
+    <div class="container">
+        <!-- Tiêu đề -->
+        <div class="text-center mb-5">
+            <h2 class="fw-bold text-uppercase text-primary" th:text="${recommendTitle}">Gợi ý cho bạn</h2>
+            <p class="text-muted">Các sản phẩm được đề xuất dựa trên hành vi và sở thích của bạn</p>
+        </div>
+
+        <!-- Carousel -->
+        <div class="owl-carousel product-carousel">
+
+            <!-- Lặp qua sản phẩm -->
+            <div class="item" th:each="product : ${recommendedProducts}">
+                <div class="card border-0 shadow-sm rounded-4 overflow-hidden position-relative h-100">
+                    <div class="position-relative">
+                        <img th:src="@{'/images/product/' + ${product.image}}"
+                             class="img-fluid w-100"
+                             alt="Ảnh sản phẩm"
+                             style="height: 230px; object-fit: cover;">
+                        <span class="badge bg-primary position-absolute top-0 start-0 m-2 px-3 py-2 rounded-pill"
+                              th:text="${product.category != null ? product.category.name : 'Hot'}"></span>
+                    </div>
+
+                    <div class="card-body text-center p-3">
+                        <h5 class="card-title mb-2 text-truncate">
+                            <a th:href="@{'/product/' + ${product.id}}"
+                               class="text-decoration-none text-dark fw-semibold"
+                               th:text="${product.name}">Tên sản phẩm</a>
+                        </h5>
+                        <p class="text-muted small mb-3" th:text="${product.shortDesc}">Mô tả ngắn</p>
+                        <p class="text-primary fw-bold fs-5 mb-3"
+                           th:text="${#numbers.formatDecimal(product.price, 0, 'COMMA', 0, 'POINT')} + 'đ'">0đ</p>
+
+                        <form th:action="@{'/add-product-to-cart/' + ${product.id}}" method="post">
+                            <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}" />
+                            <button class="btn btn-outline-primary rounded-pill px-4 py-2">
+                                <i class="fa fa-shopping-bag me-2"></i> Thêm vào giỏ
+                            </button>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+<!-- ===== KẾT THÚC PHẦN GỢI Ý SẢN PHẨM ===== -->
+
+<!-- ===== Chọn Lọc ===== -->
+<section aria-labelledby="brands-heading">
+    <h2 id="brands-heading" class="section-title">Máy tính laptop</h2>
+
+    <div class="brand-row" role="list">
+        <!-- Thay src bằng ảnh logo thực tế -->
+        <button class="brand-chip" role="listitem" title="MacBook">
+            <img src="https://via.placeholder.com/160x40?text=MacBook" alt="MacBook logo">
+        </button>
+
+        <button class="brand-chip" role="listitem" title="ASUS">
+            <img src="https://via.placeholder.com/160x40?text=ASUS" alt="ASUS logo">
+        </button>
+
+        <button class="brand-chip" role="listitem" title="Lenovo">
+            <img src="https://via.placeholder.com/160x40?text=Lenovo" alt="Lenovo logo">
+        </button>
+
+        <button class="brand-chip" role="listitem" title="MSI">
+            <img src="https://via.placeholder.com/160x40?text=MSI" alt="MSI logo">
+        </button>
+
+        <button class="brand-chip" role="listitem" title="Acer">
+            <img src="https://via.placeholder.com/160x40?text=Acer" alt="Acer logo">
+        </button>
+
+        <button class="brand-chip" role="listitem" title="HP">
+            <img src="https://via.placeholder.com/160x40?text=HP" alt="HP logo">
+        </button>
+
+        <button class="brand-chip" role="listitem" title="Dell">
+            <img src="https://via.placeholder.com/160x40?text=Dell" alt="Dell logo">
+        </button>
+
+        <button class="brand-chip" role="listitem" title="LG">
+            <img src="https://via.placeholder.com/160x40?text=LG" alt="LG logo">
+        </button>
+
+        <button class="brand-chip" role="listitem" title="Gigabyte">
+            <img src="https://via.placeholder.com/160x40?text=GIGABYTE" alt="Gigabyte logo">
+        </button>
+
+        <button class="brand-chip" role="listitem" title="Masstel">
+            <img src="https://via.placeholder.com/160x40?text=Masstel" alt="Masstel logo">
+        </button>
+    </div>
+</section>
+
+<section aria-labelledby="needs-heading" style="margin-top:28px;">
+    <h2 id="needs-heading" class="section-title">Nhu cầu</h2>
+
+    <div class="categories" role="list">
+        <!-- Card 1 -->
+        <article class="card" role="listitem" aria-label="Văn phòng">
+            <div class="thumb">
+                <img src="https://via.placeholder.com/240x140?text=Office" alt="Laptop văn phòng">
+            </div>
+            <div class="title">Văn phòng</div>
+        </article>
+
+        <!-- Card 2 -->
+        <article class="card" role="listitem" aria-label="Gaming">
+            <div class="thumb">
+                <img src="https://via.placeholder.com/240x140?text=Gaming" alt="Laptop gaming">
+            </div>
+            <div class="title">Gaming</div>
+        </article>
+
+        <!-- Card 3 -->
+        <article class="card" role="listitem" aria-label="Mỏng nhẹ">
+            <div class="thumb">
+                <img src="https://via.placeholder.com/240x140?text=Slim" alt="Laptop mỏng nhẹ">
+            </div>
+            <div class="title">Mỏng nhẹ</div>
+        </article>
+
+        <!-- Card 4 -->
+        <article class="card" role="listitem" aria-label="Đồ họa - kỹ thuật">
+            <div class="thumb">
+                <img src="https://via.placeholder.com/240x140?text=Design" alt="Laptop đồ họa kỹ thuật">
+            </div>
+            <div class="title">Đồ họa - kỹ thuật</div>
+        </article>
+
+        <!-- Card 5 -->
+        <article class="card" role="listitem" aria-label="Sinh viên">
+            <div class="thumb">
+                <img src="https://via.placeholder.com/240x140?text=Student" alt="Laptop cho sinh viên">
+            </div>
+            <div class="title">Sinh viên</div>
+        </article>
+
+        <!-- Card 6 -->
+        <article class="card" role="listitem" aria-label="Cảm ứng">
+            <div class="thumb">
+                <img src="client/logo/camung.jpg" alt="Laptop cảm ứng">
+            </div>
+            <div class="title">Cảm ứng</div>
+        </article>
+
+        <!-- Card 7 -->
+        <article class="card" role="listitem" aria-label="Laptop AI">
+            <div class="thumb">
+                <img src="https://via.placeholder.com/240x140?text=Laptop+AI" alt="Laptop AI">
+            </div>
+            <div class="title">Laptop AI</div>
+        </article>
+    </div>
+</section>
+
 <!-- Products Section Start -->
 <div class="container-fluid fruite py-5">
     <div class="container py-5">
@@ -73,28 +336,40 @@
                     <h1>Các Sản Phẩm Của Chúng Tôi</h1>
                 </div>
                 <div class="col-lg-8 text-end">
+                    <!-- ===== BẮT ĐẦU SỬA LỖI (THÊM TAB LỌC) ===== -->
                     <ul class="nav nav-pills d-inline-flex text-center mb-5">
                         <li class="nav-item">
                             <a class="d-flex m-2 py-2 bg-light rounded-pill active" data-bs-toggle="pill" href="#tab-0">
                                 <span class="text-dark" style="width: 130px;">Tất cả</span>
                             </a>
                         </li>
-                        <!-- Các tab khác -->
+                        <!-- Lặp qua các Categories (từ HomeService) -->
+                        <li class="nav-item" th:each="cat : ${categories}">
+                            <a class="d-flex m-2 py-2 bg-light rounded-pill" data-bs-toggle="pill" th:href="@{|#tab-${cat.id}|}">
+                                <span class="text-dark" style="width: 130px;" th:text="${cat.name}"></span>
+                            </a>
+                        </li>
                     </ul>
+                    <!-- ===== KẾT THÚC SỬA LỖI ===== -->
                 </div>
             </div>
 
+            <!-- ===== BẮT ĐẦU SỬA LỖI (THÊM NỘI DUNG TAB) ===== -->
             <div class="tab-content">
-                <div id="tab-1" class="tab-pane fade show p-0 active">
+                <!-- Tab 0: Tất cả sản phẩm -->
+                <div id="tab-0" class="tab-pane fade show p-0 active">
                     <div class="row g-4">
                         <div class="col-lg-12">
                             <div class="row g-4">
+                                <!-- Lặp qua TẤT CẢ products -->
                                 <div class="col-md-6 col-lg-4 col-xl-3" th:each="product : ${products}">
+                                    <!-- (Card sản phẩm - copy từ code cũ của bạn) -->
                                     <div class="rounded position-relative fruite-item">
                                         <div class="fruite-img">
                                             <img th:src="@{'/images/product/' + ${product.image}}" class="img-fluid w-100 rounded-top" alt="">
                                         </div>
-                                        <div class="text-white bg-secondary px-3 py-1 rounded position-absolute" style="top: 10px; left: 10px;"></div>
+                                        <div class="text-white bg-secondary px-3 py-1 rounded position-absolute" style="top: 10px; left: 10px;"
+                                             th:text="${product.category != null ? product.category.name : 'Mới'}"></div>
                                         <div class="p-4 border border-secondary border-top-0 rounded-bottom">
                                             <h4 style="font-size: 15px;">
                                                 <a th:href="@{'/product/' + ${product.id}}" class="text-decoration-none text-dark" th:text="${product.name}"></a>
@@ -104,37 +379,78 @@
                                                 <p style="font-size: 15px; text-align: center; width: 100%;"
                                                    class="text-dark fs-5 fw-bold mb-0"
                                                    th:text="${#numbers.formatDecimal(product.price, 0, 'COMMA', 0, 'POINT')} + 'đ'"></p>
-
                                                 <form th:action="@{'/add-product-to-cart/' + ${product.id}}" method="post">
-                                                    <input type="hidden"
-                                                           th:name="${_csrf.parameterName}"
-                                                           th:value="${_csrf.token}" />
+                                                    <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}" />
                                                     <button class="mx-auto btn border border-secondary rounded-pill px-3 text-primary">
                                                         <i class="fa fa-shopping-bag me-2 text-primary"></i> Add to cart
                                                     </button>
                                                 </form>
-
                                             </div>
                                         </div>
                                     </div>
-                                </div> <!-- end product loop -->
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Các Tab Category (Tab 1, 2, 3...) -->
+                <!-- Lặp qua categories MỘT LẦN NỮA để tạo nội dung tab -->
+                <div th:each="cat : ${categories}" th:id="@{|tab-${cat.id}|}" class="tab-pane fade show p-0">
+                    <div class="row g-4">
+                        <div class="col-lg-12">
+                            <div class="row g-4">
+                                <!-- Lặp qua TẤT CẢ products VÀ LỌC BẰNG THYMELEAF -->
+                                <div th:each="product : ${products}" th:if="${product.category != null AND product.category.id == cat.id}"
+                                     class="col-md-6 col-lg-4 col-xl-3">
+                                    <!-- (Card sản phẩm - copy y hệt ở trên) -->
+                                    <div class="rounded position-relative fruite-item">
+                                        <div class="fruite-img">
+                                            <img th:src="@{'/images/product/' + ${product.image}}" class="img-fluid w-100 rounded-top" alt="">
+                                        </div>
+                                        <div class="text-white bg-secondary px-3 py-1 rounded position-absolute" style="top: 10px; left: 10px;"
+                                             th:text="${cat.name}"></div>
+                                        <div class="p-4 border border-secondary border-top-0 rounded-bottom">
+                                            <h4 style="font-size: 15px;">
+                                                <a th:href="@{'/product/' + ${product.id}}" class="text-decoration-none text-dark" th:text="${product.name}"></a>
+                                            </h4>
+                                            <p style="font-size: 13px;" th:text="${product.shortDesc}"></p>
+                                            <div class="d-flex justify-content-center flex-lg-wrap">
+                                                <p style="font-size: 15px; text-align: center; width: 100%;"
+                                                   class="text-dark fs-5 fw-bold mb-0"
+                                                   th:text="${#numbers.formatDecimal(product.price, 0, 'COMMA', 0, 'POINT')} + 'đ'"></p>
+                                                <form th:action="@{'/add-product-to-cart/' + ${product.id}}" method="post">
+                                                    <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}" />
+                                                    <button class="mx-auto btn border border-secondary rounded-pill px-3 text-primary">
+                                                        <i class="fa fa-shopping-bag me-2 text-primary"></i> Add to cart
+                                                    </button>
+                                                </form>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
                             </div>
                         </div>
                     </div>
                 </div>
             </div>
+            <!-- ===== KẾT THÚC SỬA LỖI ===== -->
         </div>
-     </div>
+    </div>
 </div>
 <!-- Products Section End -->
 
-<!-- Feature include -->
+
+<!-- Feature include (Giữ nguyên) -->
 <div th:replace="~{client/layout/feature :: feature}"></div>
 
-<!-- Footer include -->
+<!-- Footer include (Giữ nguyên) -->
 <div th:replace="~{client/layout/footer :: footer}"></div>
 
-<!-- JavaScript Libraries -->
+<!-- Back to Top (Giữ nguyên) -->
+<a href="#" class="btn btn-primary border-3 border-primary rounded-circle back-to-top"><i class="fa fa-arrow-up"></i></a>
+
+<!-- JavaScript Libraries (Giữ nguyên) -->
 <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.6.4/jquery.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.0.0/dist/js/bootstrap.bundle.min.js"></script>
 <script src="/client/lib/easing/easing.min.js"></script>
@@ -142,43 +458,100 @@
 <script src="/client/lib/lightbox/js/lightbox.min.js"></script>
 <script src="/client/lib/owlcarousel/owl.carousel.min.js"></script>
 
-<!-- Template Javascript -->
+<!-- Template Javascript (Giữ nguyên) -->
 <script src="/client/js/main.js"></script>
 
-<script>
+<!-- Search Modal Script (Giữ nguyên - Đã sửa lỗi) -->
+<script th:inline="javascript">
+    /*<![CDATA[*/
     let debounceTimer;
 
     document.getElementById("search-keyword").addEventListener("input", function () {
         const keyword = this.value.trim();
         clearTimeout(debounceTimer);
 
+        // Lấy CSRF token từ thẻ meta
+        const token = document.querySelector("meta[name='_csrf']").getAttribute("content");
+        const header = document.querySelector("meta[name='_csrf_header']").getAttribute("content");
+
         debounceTimer = setTimeout(() => {
             if (keyword.length >= 2) {
-                fetch("/api/search?keyword=" + encodeURIComponent(keyword))
-                    .then(response => response.json())
-                    .then(data => {
-                        const resultsDiv = document.getElementById("search-results");
+                // Sửa: Dùng API mới /api/search (vì bạn có @GetMapping("/search") trong controller)
+                fetch("/api/search?keyword=" + encodeURIComponent(keyword), {
+                    method: 'GET', // (Phải là GET vì controller là @GetMapping)
+                    headers: {
+                        'Accept': 'application/json'
+                        // (Không cần CSRF cho GET)
+                    }
+                })
+                .then(response => {
+                    if (!response.ok) throw new Error("Lỗi mạng");
+                    return response.json();
+                })
+                .then(data => {
+                    const resultsDiv = document.getElementById("search-results");
+                    if (!resultsDiv) return;
 
-                        if (!resultsDiv) return;
+                    if (data.length === 0) {
+                        resultsDiv.innerHTML = "<p class='text-center text-muted'>Không tìm thấy kết quả</p>";
+                        return;
+                    }
 
-                        if (data.length === 0) {
-                            resultsDiv.innerHTML = "<p class='text-center text-muted'>Không tìm thấy kết quả</p>";
-                            return;
-                        }
-
-                        resultsDiv.innerHTML = data.map(product => `
-                            <div class="border-bottom py-2">
-                                <a href="/product/${product.id}" class="text-decoration-none text-dark">
-                                    <strong>${product.name}</strong><br/>
-                                    <small>${product.shortDesc}</small>
-                                </a>
-                            </div>
-                        `).join('');
-                    })
-                    .catch(error => console.error("Lỗi tìm kiếm:", error));
+                    resultsDiv.innerHTML = data.map(product => `
+                        <div class="border-bottom py-2">
+                            <a href="/product/${product.id}" class="text-decoration-none text-dark">
+                                <strong>${product.name}</strong><br/>
+                                <small>${product.shortDesc}</small>
+                            </a>
+                        </div>
+                    `).join('');
+                })
+                .catch(error => console.error("Lỗi tìm kiếm:", error));
+            } else {
+                 const resultsDiv = document.getElementById("search-results");
+                 if (resultsDiv) resultsDiv.innerHTML = ""; // Xóa kết quả cũ nếu keyword ngắn
             }
         }, 500); // Đợi 500ms sau khi ngừng gõ
     });
+
+    // Khởi tạo Owl Carousel (cho phần Gợi ý)
+    (function ($) {
+        "use strict";
+
+        // (Code main.js của bạn có thể đã có phần này,
+        // nhưng thêm vào đây để đảm bảo carousel gợi ý hoạt động)
+
+        // Product Carousel
+        $('.product-carousel').owlCarousel({
+            autoplay: true,
+            smartSpeed: 1000,
+            center: false,
+            dots: true,
+            loop: true,
+            margin: 25,
+            nav : false, // Tắt nút next/prev
+            responsiveClass: true,
+            responsive: {
+                0:{
+                    items:1
+                },
+                576:{
+                    items:1
+                },
+                768:{
+                    items:2
+                },
+                992:{
+                    items:3
+                },
+                1200:{
+                    items:4
+                }
+            }
+        });
+
+    })(jQuery);
+    /*]]>*/
 </script>
 
 </body>

@@ -4,71 +4,277 @@
     <meta charset="utf-8" />
     <meta http-equiv="X-UA-Compatible" content="IE=edge" />
     <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no" />
-    <title>Dashboard - Admin</title>
+
+    <!-- (Thêm title từ Controller) -->
+    <title th:text="${title} + ' - Admin'">Dashboard - Admin</title>
 
     <link href="https://cdn.jsdelivr.net/npm/simple-datatables@7.1.2/dist/style.min.css" rel="stylesheet" />
-    <!-- Dùng th:href để Thymeleaf tự resolve đường dẫn -->
     <link th:href="@{/css/styles.css}" rel="stylesheet" />
     <script src="https://use.fontawesome.com/releases/v6.3.0/js/all.js" crossorigin="anonymous"></script>
+
+    <!-- (Thêm CSS tùy chỉnh) -->
+    <style>
+        .product-thumbnail {
+            width: 60px;
+            height: 60px;
+            object-fit: cover;
+            border-radius: 5px;
+        }
+    </style>
 </head>
 
 <body class="sb-nav-fixed">
-    <!-- Header -->
-    <div th:replace="~{admin/layout/header :: header}"></div>
+<!-- Header -->
+<div th:replace="~{admin/layout/header :: header}"></div>
 
-    <div id="layoutSidenav">
-        <!-- Sidebar -->
-        <div th:replace="~{admin/layout/sidebar :: sidebar}"></div>
+<div id="layoutSidenav">
+    <!-- Sidebar -->
+    <div th:replace="~{admin/layout/sidebar :: sidebar}"></div>
 
-        <div id="layoutSidenav_content">
-            <main>
-                <div class="container-fluid px-4">
-                    <h1 class="mt-4">Dashboard</h1>
-                    <ol class="breadcrumb mb-4">
-                        <li class="breadcrumb-item active">Dashboard</li>
-                    </ol>
+    <div id="layoutSidenav_content">
+        <main>
+            <div class="container-fluid px-4">
+                <h1 class="mt-4" th:text="${title}">Dashboard</h1>
+                <ol class="breadcrumb mb-4">
+                    <li class="breadcrumb-item active">Thống kê tổng quan</li>
+                </ol>
 
-                    <!-- Demo chart -->
-                    <div class="row mt-4">
-                        <div class="col-xl-6">
-                            <div class="card mb-4">
-                                <div class="card-header">
-                                    <i class="fas fa-chart-area me-1"></i>
-                                    Area Chart Example
+                <!-- ===== NỘI DUNG CHÍNH CỦA TRANG ===== -->
+                <main th:fragment="main">
+                    <div class="container-fluid px-4">
+                        <h1 class="mt-4">Dashboard</h1>
+                        <ol class="breadcrumb mb-4">
+                            <li class="breadcrumb-item active">Thống kê tổng quan</li>
+                        </ol>
+
+                        <!-- 1. Hàng Thẻ Thống Kê (Giữ nguyên) -->
+                        <div class="row">
+                            <!-- Thẻ Doanh thu -->
+                            <div class="col-xl-4 col-md-6">
+                                <div class="card bg-success text-white mb-4">
+                                    <div class="card-body">
+                                        <h4 class="mb-0" th:text="${#numbers.formatDecimal(totalRevenue, 0, 'COMMA', 0, 'POINT')} + ' đ'">0 đ</h4>
+                                        <p class="mb-0">Tổng Doanh Thu (Hoàn thành)</p>
+                                    </div>
+                                    <div class="card-footer d-flex align-items-center justify-content-between">
+                                        <span class="small text-white">Chỉ tính đơn hàng 'COMPLETED'</span>
+                                    </div>
                                 </div>
-                                <div class="card-body">
-                                    <canvas id="myAreaChart" width="100%" height="40"></canvas>
+                            </div>
+                            <!-- Thẻ Đơn hàng mới -->
+                            <div class="col-xl-4 col-md-6">
+                                <div class="card bg-warning text-dark mb-4">
+                                    <div class="card-body">
+                                        <h4 class="mb-0" th:text="${newOrdersCount}">0</h4>
+                                        <p class="mb-0">Đơn Hàng Mới</p>
+                                    </div>
+                                    <div class="card-footer d-flex align-items-center justify-content-between">
+                                        <span class="small text-dark">Đơn 'PENDING' hoặc 'PROCESSING'</span>
+                                        <a th:href="@{/admin/orders}" class="small text-dark text-decoration-none">Xem chi tiết</a>
+                                    </div>
+                                </div>
+                            </div>
+                            <!-- Thẻ Khách hàng -->
+                            <div class="col-xl-4 col-md-6">
+                                <div class="card bg-primary text-white mb-4">
+                                    <div class="card-body">
+                                        <h4 class="mb-0" th:text="${totalCustomers}">0</h4>
+                                        <p class="mb-0">Tổng Số Khách Hàng</p>
+                                    </div>
+                                    <div class="card-footer d-flex align-items-center justify-content-between">
+                                        <span class="small text-white">Chỉ tính tài khoản Role 'USER'</span>
+                                    </div>
                                 </div>
                             </div>
                         </div>
-                        <div class="col-xl-6">
-                            <div class="card mb-4">
-                                <div class="card-header">
-                                    <i class="fas fa-chart-bar me-1"></i>
-                                    Bar Chart Example
+
+                        <!-- 2. Hàng Biểu đồ (Giữ nguyên HTML, nhưng JS sẽ thay đổi) -->
+                        <div class="row">
+                            <div class="col-xl-6">
+                                <div class="card mb-4">
+                                    <div class="card-header">
+                                        <i class="fas fa-chart-area me-1"></i>
+                                        Doanh thu 12 tháng gần nhất
+                                    </div>
+                                    <div class="card-body"><canvas id="myAreaChart" width="100%" height="40"></canvas></div>
                                 </div>
-                                <div class="card-body">
-                                    <canvas id="myBarChart" width="100%" height="40"></canvas>
+                            </div>
+                            <div class="col-xl-6">
+                                <div class="card mb-4">
+                                    <div class="card-header">
+                                        <i class="fas fa-chart-bar me-1"></i>
+                                        Số lượng đơn hàng 12 tháng gần nhất
+                                    </div>
+                                    <div class="card-body"><canvas id="myBarChart" width="100%" height="40"></canvas></div>
                                 </div>
                             </div>
                         </div>
+
+                        <!-- 3. Bảng Sản phẩm Bán chạy (Giữ nguyên) -->
+                        <div class="card mb-4">
+                            <div class="card-header">
+                                <i class="fas fa-table me-1"></i>
+                                Top 5 Sản phẩm Bán chạy nhất
+                            </div>
+                            <div class="card-body">
+                                <table class="table table-hover">
+                                    <thead>
+                                    <tr>
+                                        <th>ID</th>
+                                        <th>Sản phẩm</th>
+                                        <th>Hình ảnh</th>
+                                        <th>Giá</th>
+                                        <th>Đã bán</th>
+                                    </tr>
+                                    </thead>
+                                    <tbody>
+                                    <tr th:if="${#lists.isEmpty(bestSellingProducts)}">
+                                        <td colspan="5" class="text-center">Chưa có dữ liệu.</td>
+                                    </tr>
+                                    <tr th:each="product : ${bestSellingProducts}">
+                                        <td th:text="${product.id}"></td>
+                                        <td th:text="${product.name}"></td>
+                                        <td>
+                                            <img th:src="@{'/images/product/' + ${product.image}}" th:alt="${product.name}" class="product-thumbnail" />
+                                        </td>
+                                        <td th:text="${#numbers.formatDecimal(product.price, 0, 'COMMA', 0, 'POINT')} + ' đ'"></td>
+                                        <td th:text="${product.sold}"></td>
+                                    </tr>
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+
                     </div>
-                </div>
-            </main>
+                </main>
+                <!-- ===== KẾT THÚC NỘI DUNG ===== -->
 
-            <!-- Footer -->
-            <div th:replace="~{admin/layout/footer :: footer}"></div>
-        </div>
+            </div>
+        </main>
+
+        <!-- Footer -->
+        <div th:replace="~{admin/layout/footer :: footer}"></div>
     </div>
+</div>
 
-    <!-- JS Scripts -->
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.2.3/dist/js/bootstrap.bundle.min.js" crossorigin="anonymous"></script>
-    <!-- Dùng th:src để Thymeleaf tự resolve đường dẫn -->
-    <script th:src="@{/js/scripts.js}"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/2.8.0/Chart.min.js" crossorigin="anonymous"></script>
-    <script th:src="@{/js/chart-area-demo.js}"></script>
-    <script th:src="@{/js/chart-bar-demo.js}"></script>
-    <script src="https://cdn.jsdelivr.net/npm/simple-datatables@7.1.2/dist/umd/simple-datatables.min.js" crossorigin="anonymous"></script>
-    <script th:src="@{/js/datatables-simple-demo.js}"></script>
+<!-- (Phần này để chèn JS cho các biểu đồ demo) -->
+<div id="custom-scripts" th:fragment="custom-scripts">
+    <!--
+      XÓA BỎ CÁC FILE JS DEMO
+      <script th:src="@{/admin/js/chart-area-demo.js}"></script>
+      <script th:src="@{/admin/js/chart-bar-demo.js}"></script>
+    -->
+
+    <!-- ===== BẮT ĐẦU JS MỚI (VẼ BIỂU ĐỒ TỪ API) ===== -->
+    <script>
+        // (Hàm helper định dạng tiền tệ VNĐ)
+        function formatVND(value) {
+            return new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(value);
+        }
+
+        // --- 1. Vẽ Biểu đồ Doanh thu (Area Chart) ---
+        fetch('/api/admin/stats/revenue')
+            .then(response => response.json())
+            .then(data => {
+                var ctxArea = document.getElementById("myAreaChart");
+                var myAreaChart = new Chart(ctxArea, {
+                    type: 'line',
+                    data: {
+                        labels: data.labels, // Lấy từ API
+                        datasets: [{
+                            label: "Doanh thu",
+                            lineTension: 0.3,
+                            backgroundColor: "rgba(2,117,216,0.2)",
+                            borderColor: "rgba(2,117,216,1)",
+                            pointRadius: 5,
+                            pointBackgroundColor: "rgba(2,117,216,1)",
+                            pointBorderColor: "rgba(255,255,255,0.8)",
+                            pointHoverRadius: 5,
+                            pointHoverBackgroundColor: "rgba(2,117,216,1)",
+                            pointHitRadius: 50,
+                            pointBorderWidth: 2,
+                            data: data.values, // Lấy từ API
+                        }],
+                    },
+                    options: {
+                        scales: {
+                            xAxes: [{
+                                time: { unit: 'month' },
+                                gridLines: { display: false },
+                                ticks: { maxTicksLimit: 7 }
+                            }],
+                            yAxes: [{
+                                ticks: {
+                                    min: 0,
+                                    maxTicksLimit: 5,
+                                    callback: function(value, index, values) {
+                                        return formatVND(value); // Định dạng tiền
+                                    }
+                                },
+                                gridLines: { color: "rgba(0, 0, 0, .125)" }
+                            }],
+                        },
+                        legend: { display: false },
+                        tooltips: {
+                            callbacks: {
+                                label: function(tooltipItem, chart) {
+                                    return 'Doanh thu: ' + formatVND(tooltipItem.yLabel);
+                                }
+                            }
+                        }
+                    }
+                });
+            })
+            .catch(error => console.error('Lỗi khi tải biểu đồ doanh thu:', error));
+
+        // --- 2. Vẽ Biểu đồ Đơn hàng (Bar Chart) ---
+        fetch('/api/admin/stats/orders')
+            .then(response => response.json())
+            .then(data => {
+                var ctxBar = document.getElementById("myBarChart");
+                var myBarChart = new Chart(ctxBar, {
+                    type: 'bar',
+                    data: {
+                        labels: data.labels, // Lấy từ API
+                        datasets: [{
+                            label: "Số lượng đơn",
+                            backgroundColor: "rgba(255,193,7,1)", // (Màu vàng)
+                            borderColor: "rgba(255,193,7,1)",
+                            data: data.values, // Lấy từ API
+                        }],
+                    },
+                    options: {
+                        scales: {
+                            xAxes: [{
+                                time: { unit: 'month' },
+                                gridLines: { display: false },
+                                ticks: { maxTicksLimit: 6 }
+                            }],
+                            yAxes: [{
+                                ticks: {
+                                    min: 0,
+                                    maxTicksLimit: 5,
+                                    precision: 0 // Hiển thị số nguyên
+                                },
+                                gridLines: { display: true }
+                            }],
+                        },
+                        legend: { display: false },
+                        tooltips: {
+                            callbacks: {
+                                label: function(tooltipItem, chart) {
+                                    return 'Số đơn: ' + tooltipItem.yLabel;
+                                }
+                            }
+                        }
+                    }
+                });
+            })
+            .catch(error => console.error('Lỗi khi tải biểu đồ đơn hàng:', error));
+
+    </script>
+    <!-- ===== KẾT THÚC JS MỚI ===== -->
+</div>
+
 </body>
 </html>

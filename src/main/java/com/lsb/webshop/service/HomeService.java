@@ -1,6 +1,8 @@
 package com.lsb.webshop.service;
 
+import com.lsb.webshop.domain.Category;
 import com.lsb.webshop.domain.Product;
+import com.lsb.webshop.domain.User;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
@@ -19,22 +21,37 @@ public class HomeService {
     @Autowired
     private ProductService productService;
 
+    @Autowired
+    private CategoryService categoryService;
+
     public Map<String, Object> getHomepageData(Principal principal) {
         Map<String, Object> data = new HashMap<>();
 
-        // Lấy danh sách sản phẩm active
+        // 1. Lấy danh sách sản phẩm (Logic cũ của bạn)
         List<Product> products = productService.getAllActiveProducts();
         data.put("products", products);
 
-        // Nếu đã đăng nhập, lấy thông tin user
+        // 2. Lấy danh sách danh mục (Logic mới cho Tab Lọc)
+        List<Category> categories = categoryService.findAll();
+        data.put("categories", categories);
+
+        // 3. Xử lý User và Gợi ý AI (Logic mới)
+        User currentUser = null;
         if (principal != null) {
             String username = principal.getName();
-            var user = userService.findByUsername(username);
+            currentUser = userService.findByUsername(username);
 
-            // Trả về session data
-            data.put("userFullName", user.getFullName());
-            data.put("userAvatar", user.getAvatar());
+            data.put("userFullName", currentUser.getFullName());
+            data.put("userAvatar", currentUser.getAvatar());
         }
+
+        // 4. Lấy danh sách Gợi ý (AI)
+        List<Product> recommendedProducts = productService.getRecommendedProducts(currentUser);
+        String recommendTitle = (currentUser != null) ? "Gợi ý dành riêng cho bạn" : "Sản phẩm bán chạy nhất";
+
+        data.put("recommendedProducts", recommendedProducts);
+        data.put("recommendTitle", recommendTitle);
+
 
         return data;
     }

@@ -4,6 +4,7 @@ import java.util.List;
 import java.util.Optional;
 
 // Import mới (Giữ nguyên)
+import org.springframework.security.authentication.AuthenticationCredentialsNotFoundException;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.core.userdetails.UserDetails;
@@ -299,6 +300,28 @@ public class UserService {
         }
 
         return user;
+    }
+
+    /**
+     * Hàm mới: Thay đổi mật khẩu
+     */
+    @Transactional
+    public void changePassword(String email, String oldPassword, String newPassword) {
+        User user = this.findByUsername(email);
+
+        // 1. Kiểm tra mật khẩu cũ
+        if (!passwordEncoder.matches(oldPassword, user.getPassword())) {
+            // Ném lỗi AuthenticationException (hoặc lỗi tùy chỉnh)
+            throw new AuthenticationCredentialsNotFoundException("Mật khẩu cũ không chính xác");
+        }
+
+        // 2. Mã hóa và cập nhật mật khẩu mới
+        user.setPassword(passwordEncoder.encode(newPassword));
+
+        // 3. Lưu lại
+        this.userRepository.save(user);
+
+        log.info("[UserService] Đổi mật khẩu thành công cho user: {}", email);
     }
 
     // ==================================================================

@@ -1,7 +1,7 @@
 package com.lsb.webshop.service;
 
 import com.lsb.webshop.domain.*;
-import com.lsb.webshop.repository.*; // (Import các repository)
+import com.lsb.webshop.repository.*;
 import jakarta.servlet.http.HttpSession;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -14,15 +14,20 @@ import java.util.Optional;
 
 @Slf4j
 @Service
-// Đặt @Transactional ở cấp Class, tất cả hàm public sẽ là 1 giao dịch
+// Đặt @Transactional ở cấp Class
+// Mọi hàm public sẽ tự động là 1 Giao dịch (Transaction)
 @Transactional
 public class OrderService {
+
+    // Tiêm (Inject) tất cả các Repository và Service cần thiết
     private final OrderRepository orderRepository;
     private final OrderDetailRepository orderDetailRepository;
     private final CartRepository cartRepository;
-    private final CartDetailRepository cartDetailRepository; // (Dù không dùng trực tiếp, vẫn nên tiêm)
+    // (CartDetailRepository có thể không cần nếu đã set cascade,
+    // nhưng giữ lại để xóa chi tiết đơn hàng cũ)
+    private final CartDetailRepository cartDetailRepository;
     private final UserService userService;
-    private final UserRepository userRepository; // (Cần để lưu User trong clearUserCart)
+    private final UserRepository userRepository;
     private final HttpSession session;
 
     @Autowired
@@ -31,76 +36,133 @@ public class OrderService {
                         CartRepository cartRepository,
                         CartDetailRepository cartDetailRepository,
                         UserService userService,
-                        UserRepository userRepository, // Thêm
+                        UserRepository userRepository,
                         HttpSession session) {
         this.orderRepository = orderRepository;
         this.orderDetailRepository = orderDetailRepository;
         this.cartRepository = cartRepository;
         this.cartDetailRepository = cartDetailRepository;
         this.userService = userService;
-        this.userRepository = userRepository; // Thêm
+        this.userRepository = userRepository;
         this.session = session;
     }
 
-    // (Các hàm cũ fetchAllOrders, fetchOrderById, deleteOderById giữ nguyên)
+    // ===================================================================
+    // ===== CÁC HÀM CHO ADMIN (QUẢN LÝ ĐƠN HÀNG & THỐNG KÊ) =====
+    // ===================================================================
 
-    @Transactional(readOnly = true) // Giao dịch chỉ đọc
-    public List<Order> fetchAllOrders() {
-        return orderRepository.findAll();
+    /**
+     * [ADMIN] Lấy TẤT CẢ đơn hàng, sắp xếp theo ngày mới nhất
+     * (Dùng cho trang /admin/order)
+     */
+    @Transactional(readOnly = true)
+    public List<Order> adminFindAllOrders() {
+        return orderRepository.findAllByOrderByCreatedAtDesc();
     }
 
-    @Transactional(readOnly = true) // Giao dịch chỉ đọc
-    public Optional<Order> fetchOrderById(long id) {
+    /**
+     * [ADMIN] Tìm 1 đơn hàng bất kỳ bằng ID
+     * (Dùng cho trang /admin/order/{id})
+     */
+    @Transactional(readOnly = true)
+    public Optional<Order> adminFindOrderById(Long id) {
         return orderRepository.findById(id);
     }
 
-    public void deleteOderById(long id) {
-        // (Giả định Order.java đã thêm cascade=ALL, orphanRemoval=true)
-        log.info("delete order id {}", id);
-        if (this.orderRepository.existsById(id)) {
-            this.orderRepository.deleteById(id);
-        } else {
-            log.warn("Không tìm thấy Order để xóa, id: {}", id);
+    /**
+     * [ADMIN] Cập nhật trạng thái đơn hàng
+     * (Dùng cho form /admin/order/update-status)
+     */
+    public boolean adminUpdateOrderStatus(Long orderId, String status) {
+        Optional<Order> orderOpt = orderRepository.findById(orderId);
+        if (orderOpt.isPresent()) {
+            Order order = orderOpt.get();
+            // Logic nghiệp vụ: Không cho phép cập nhật đơn hàng đã kết thúc
+            if ("CANCELED".equals(order.getStatus()) || "COMPLETED".equals(order.getStatus())) {
+                log.warn("Admin cố gắng cập nhật đơn hàng đã kết thúc (ID: {})", orderId);
+                return false;
+            }
+            order.setStatus(status);
+            orderRepository.save(order);
+            log.info("Admin đã cập nhật trạng thái đơn hàng {} thành {}", orderId, status);
+            return true;
         }
+        return false;
     }
 
-    // --- CÁC HÀM MỚI CHO LUỒNG THANH TOÁN ---
+    /**
+     * [ADMIN] Hủy đơn hàng
+     * (Dùng cho form /admin/order/cancel/{id})
+     */
+    public boolean adminCancelOrder(Long orderId) {
+        Optional<Order> orderOpt = orderRepository.findById(orderId);
+        if (orderOpt.isPresent()) {
+            Order order = orderOpt.get();
+            // Logic nghiệp vụ: Không cho phép hủy đơn đã hoàn thành
+            if ("COMPLETED".equals(order.getStatus())) {
+                log.warn("Admin cố gắng hủy đơn hàng đã hoàn thành (ID: {})", orderId);
+                return false;
+            }
+            // Nếu đơn đã CANCELED rồi thì thôi
+            if (!"CANCELED".equals(order.getStatus())) {
+                order.setStatus("CANCELED");
+                orderRepository.save(order);
+                log.info("Admin đã hủy đơn hàng {}", orderId);
+                // (Sau này bạn có thể thêm logic hoàn kho (refund inventory) ở đây)
+                return true;
+            }
+            return true; // (Đã hủy từ trước, vẫn tính là thành công)
+        }
+        return false;
+    }
 
+    // ===================================================================
+    // ===== CÁC HÀM CHO CLIENT (ĐẶT HÀNG & TRANG TÀI KHOẢN) =====
+    // ===================================================================
+
+    /**
+     * [CLIENT] Tạo đơn hàng (luôn ở trạng thái PENDING) từ giỏ hàng
+     * (Dùng cho /place-order)
+     */
     public Order createOrderFromCart(String receiverName, String receiverAddress, String receiverPhone) {
-        // Lấy User từ Security Context (Hàm này đã đúng)
+        // 1. Lấy User (đã đăng nhập)
         User currentUser = this.userService.getCurrentUser();
         if (currentUser == null) {
             throw new RuntimeException("Không tìm thấy thông tin người dùng. Vui lòng đăng nhập.");
         }
 
-        // Tải lại User để đảm bảo nó là 'managed' (được quản lý)
+        // 2. Lấy User 'managed' (đang được quản lý bởi JPA)
         User managedUser = this.userService.findByUsername(currentUser.getEmail());
         if(managedUser == null) {
             throw new RuntimeException("Không tìm thấy thông tin người dùng (managed).");
         }
 
-        // Lấy giỏ hàng từ User (đã managed)
+        // 3. Lấy giỏ hàng từ User (dùng liên kết OneToOne)
         Cart cart = managedUser.getCart();
         if (cart == null || cart.getCartDetails() == null || cart.getCartDetails().isEmpty()) {
             throw new RuntimeException("Giỏ hàng của bạn đang rỗng.");
         }
 
+        // 4. Tính tổng tiền (phía server, để bảo mật)
         List<CartDetail> cartDetails = cart.getCartDetails();
         Double totalPrice = 0.0;
         for (CartDetail cd : cartDetails) {
             totalPrice += cd.getPrice() * cd.getQuantity();
         }
 
+        // 5. Tạo và lưu Order (Trạng thái PENDING)
         Order order = new Order();
-        order.setUser(managedUser); // Quan trọng: Dùng user 'managed'
+        order.setUser(managedUser); // Liên kết với User 'managed'
         order.setReceiverName(receiverName);
         order.setReceiverAddress(receiverAddress);
         order.setReceiverPhone(receiverPhone);
         order.setTotalPrice(totalPrice);
         order.setStatus("PENDING");
+        // (createdAt được gán tự động bởi @CreationTimestamp trong Order.java)
 
         Order savedOrder = this.orderRepository.save(order);
 
+        // 6. Sao chép sản phẩm từ CartDetail sang OrderDetail
         for (CartDetail cd : cartDetails) {
             OrderDetail orderDetail = new OrderDetail();
             orderDetail.setOrder(savedOrder);
@@ -109,14 +171,20 @@ public class OrderService {
             orderDetail.setQuantity(cd.getQuantity());
             this.orderDetailRepository.save(orderDetail);
         }
+
+        // 7. Trả về Order đã lưu (cho Controller)
         return savedOrder;
     }
 
+    /**
+     * [CLIENT] Cập nhật trạng thái (dùng cho COD)
+     * (Dùng cho /place-order)
+     */
     public void updateOrderStatus(Order order, String status) {
         if (order == null) {
             throw new IllegalArgumentException("Đơn hàng không được null");
         }
-        // Tải lại Order để đảm bảo 'managed'
+        // Lấy lại đối tượng 'managed' từ CSDL để cập nhật
         Order managedOrder = this.orderRepository.findById(order.getId())
                 .orElseThrow(() -> new IllegalArgumentException("Không tìm thấy đơn hàng để cập nhật"));
 
@@ -125,9 +193,9 @@ public class OrderService {
     }
 
     /**
-     * HÀM NÀY ĐÃ ĐƯỢC CẬP NHẬT
-     * Bây giờ nhận tham số User (thay vì lấy từ SecurityContext)
-     * để cả COD (có session) và VNPAY IPN (không session) đều gọi được.
+     * [CLIENT/SYSTEM] Xóa giỏ hàng sau khi đặt hàng thành công
+     * (Dùng cho /place-order (COD) và /vnpay-ipn (VNPAY))
+     * (Sử dụng cơ chế 'orphanRemoval' đã cấu hình trong User.java)
      */
     public void clearUserCart(User user) {
         if (user == null) {
@@ -135,13 +203,12 @@ public class OrderService {
             return;
         }
 
-        // 1. Tải đối tượng User (persistent) đang được quản lý
-        // (Chúng ta cần ID, nhưng tốt hơn là dùng email nếu có)
+        // 1. Tải đối tượng User 'managed'
         User managedUser = this.userRepository.findByEmail(user.getEmail())
                 .orElse(null);
 
         if(managedUser == null) {
-            log.warn("Không tìm thấy managed user: {}", user.getEmail());
+            log.warn("Không tìm thấy managed user để xóa giỏ hàng: {}", user.getEmail());
             return;
         }
 
@@ -150,7 +217,7 @@ public class OrderService {
 
         if (cart != null) {
             // 3. Phá vỡ liên kết từ phía Cha (User)
-            // 'orphanRemoval=true' trong User.java sẽ tự động xóa Cart
+            // 'orphanRemoval=true' trong User.java sẽ tự động xóa 'Cart' (và 'CartDetail' do cascade)
             managedUser.setCart(null);
 
             // 4. Lưu lại Cha (User)
@@ -160,10 +227,61 @@ public class OrderService {
             try {
                 session.setAttribute("sum", 0);
             } catch (Exception e) {
-                log.warn("Không thể cập nhật session (có thể đây là luồng IPN)");
+                log.warn("Không thể cập nhật session (có thể đây là luồng IPN của VNPAY)");
             }
 
             log.info("Đã xóa giỏ hàng cho user: " + user.getEmail());
         }
+    }
+
+    /**
+     * [CLIENT] Lấy lịch sử đơn hàng của User
+     * (Dùng cho trang /account/orders)
+     */
+    @Transactional(readOnly = true)
+    public List<Order> findOrdersByUser(User user) {
+        return orderRepository.findByUserOrderByCreatedAtDesc(user);
+    }
+
+    /**
+     * [CLIENT] Lấy chi tiết 1 đơn hàng (có kiểm tra ownership)
+     * (Dùng cho trang /account/orders/{id})
+     */
+    @Transactional(readOnly = true)
+    public Optional<Order> findOrderByIdAndUser(Long id, User user) {
+        return orderRepository.findByIdAndUser(id, user);
+    }
+
+    /**
+     * [CLIENT] Hủy đơn hàng (có kiểm tra ownership)
+     * (Dùng cho trang /account/orders/cancel/{id})
+     */
+    public boolean cancelOrder(Long orderId, User user) {
+        Optional<Order> orderOpt = orderRepository.findByIdAndUser(orderId, user);
+        if (orderOpt.isEmpty()) {
+            // User cố gắng hủy đơn hàng không phải của mình
+            throw new SecurityException("Bạn không có quyền hủy đơn hàng này.");
+        }
+        Order order = orderOpt.get();
+        // Logic nghiệp vụ: Chỉ cho hủy khi đơn còn đang xử lý
+        if ("PENDING".equals(order.getStatus()) || "PROCESSING".equals(order.getStatus())) {
+            order.setStatus("CANCELED");
+            orderRepository.save(order);
+            log.info("User {} đã hủy đơn hàng {}", user.getEmail(), orderId);
+            return true;
+        }
+        // Không cho hủy đơn đã/đang giao
+        log.warn("User {} cố gắng hủy đơn hàng đã giao (ID: {})", user.getEmail(), orderId);
+        return false;
+    }
+
+    /**
+     * Hàm này đã được thay thế bằng 'adminFindAllOrders'
+     */
+    @Deprecated
+    @Transactional(readOnly = true)
+    public List<Order> fetchAllOrders() {
+        log.warn("Hàm 'fetchAllOrders' (đã cũ) vừa được gọi. Nên thay thế bằng 'adminFindAllOrders'.");
+        return orderRepository.findAllByOrderByCreatedAtDesc(); // Tạm thời trỏ đến hàm mới
     }
 }

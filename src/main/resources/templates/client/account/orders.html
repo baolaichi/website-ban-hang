@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>LSB - Thông tin tài khoản</title>
+    <title>LSB - Đơn hàng của tôi</title>
 
     <!-- (Tất cả CSS của bạn giữ nguyên) -->
     <link href="https://fonts.googleapis.com/css2?family=Open+Sans:wght@400;600&family=Raleway:wght@600;800&display=swap" rel="stylesheet">
@@ -16,25 +16,9 @@
 
     <!-- (CSS tùy chỉnh của bạn giữ nguyên) -->
     <style>
-        .profile-wrapper {
-            max-width: 600px;
-            margin: 40px auto;
-            background: #fff;
-            border-radius: 12px;
-            padding: 30px;
-            box-shadow: 0 0 15px rgba(0,0,0,0.05);
-        }
-        .profile-avatar {
-            width: 120px;
-            height: 120px;
-            border-radius: 50%;
-            object-fit: cover;
-            border: 2px solid #ccc;
-        }
         .form-label {
             font-weight: 500;
         }
-        /* Thêm CSS cho link active */
         .list-group-item-action.active {
             background-color: var(--bs-primary);
             color: #fff;
@@ -67,7 +51,6 @@
                        th:classappend="${currentPath == '/account/profile' ? 'active' : ''}">
                         Hồ sơ
                     </a>
-
                     <!-- SỬA LỖI 2: Dùng biến ${currentPath} -->
                     <a th:href="@{/account/change-password}"
                        class="list-group-item list-group-item-action ps-4"
@@ -82,68 +65,60 @@
                    th:classappend="${currentPath != null && currentPath.startsWith('/account/orders') ? 'active' : ''}">
                     Đơn mua
                 </a>
-
             </div>
         </div>
 
-        <!-- Main Content: Form (ĐÃ CẬP NHẬT) -->
+        <!-- Main Content: Bảng Đơn hàng -->
         <div class="col-md-9">
-            <div class="profile-wrapper">
-                <h4 class="text-center mb-4">Thông tin tài khoản</h4>
+            <h4 class="mb-4">Đơn mua</h4>
 
-                <!-- Thêm Thông báo (Alerts) -->
-                <div th:if="${successMessage}" class="alert alert-success" role="alert"
-                     th:text="${successMessage}"></div>
-                <div th:if="${errorMessage}" class="alert alert-danger" role="alert"
-                     th:text="${errorMessage}"></div>
-
-                <!-- Sửa lại logic hiển thị Avatar -->
-                <div class="text-center mb-4">
-                    <!-- Dùng user.avatarUrl (từ UserDTO) thay vì session -->
-                    <img th:src="@{${user.avatarUrl != null ? '/images/avatar/' + user.avatarUrl : '/images/avatar/default.png'}}"
-                         alt="Avatar" class="profile-avatar">
-                </div>
-
-                <form th:action="@{/account/update}" method="post" enctype="multipart/form-data" th:object="${user}">
-                    <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}" />
-                    <input type="hidden" th:field="*{id}" />
-
-                    <div class="mb-3">
-                        <label class="form-label">Họ tên</label>
-                        <input type="text" class="form-control" th:field="*{fullName}" required>
-                    </div>
-
-                    <div class="mb-3">
-                        <label class="form-label">Email</label>
-                        <input type="email" class="form-control" th:field="*{email}" readonly>
-                    </div>
-
-                    <div class="mb-3">
-                        <label class="form-label">Số điện thoại</label>
-                        <input type="text" class="form-control" th:field="*{phoneNumber}">
-                    </div>
-
-                    <div class="mb-3">
-                        <label class="form-label">Địa chỉ</label>
-                        <input type="text" class="form-control" th:field="*{address}">
-                    </div>
-
-                    <div class="mb-3">
-                        <label class="form-label">Ảnh đại diện mới</label>
-                        <input type="file" class="form-control" name="avatarFile" accept="image/*">
-                        <small class="form-text text-muted">Bỏ trống nếu không muốn thay đổi</small>
-                    </div>
-
-                    <div class="d-grid">
-                        <button type="submit" class="btn btn-primary">Lưu thay đổi</button>
-                    </div>
-                </form>
-
+            <div th:if="${param.error == 'notfound'}" class="alert alert-danger" role="alert">
+                Không tìm thấy đơn hàng hoặc đơn hàng không thuộc về bạn.
             </div>
+
+            <div class="table-responsive">
+                <table class="table table-hover align-middle">
+                    <thead>
+                    <tr>
+                        <th scope="col">Mã Đơn</th>
+                        <th scope="col">Ngày Đặt</th>
+                        <th scope="col">Tổng Tiền</th>
+                        <th scope="col">Trạng thái</th>
+                        <th scope="col"></th>
+                    </tr>
+                    </thead>
+                    <tbody>
+                    <tr th:if="${#lists.isEmpty(orders)}">
+                        <td colspan="5" class="text-center">Bạn chưa có đơn hàng nào.</td>
+                    </tr>
+
+                    <tr th:each="order : ${orders}">
+                        <th scope="row" th:text="'#' + ${order.id}">#12345</th>
+                        <td th:text="${#temporals.format(order.createdAt, 'dd-MM-yyyy HH:mm')}">01-01-2025</td>
+                        <td th:text="${#numbers.formatDecimal(order.totalPrice, 0, 'COMMA', 0, 'POINT')} + ' đ'">10.000.000 đ</td>
+                        <td>
+                                <span class="badge"
+                                      th:classappend="${order.status == 'PENDING' ? 'bg-warning text-dark' :
+                                                       (order.status == 'PROCESSING' ? 'bg-info text-dark' :
+                                                       (order.status == 'DELIVERING' ? 'bg-primary' :
+                                                       (order.status == 'COMPLETED' ? 'bg-success' : 'bg-danger')))}"
+                                      th:text="${order.status}">
+                                    PROCESSING
+                                </span>
+                        </td>
+                        <td>
+                            <a th:href="@{/account/orders/{id}(id=${order.id})}" class="btn btn-sm btn-outline-primary">
+                                Xem chi tiết
+                            </a>
+                        </td>
+                    </tr>
+                    </tbody>
+                </table>
+            </div>
+
         </div>
     </div>
 </div>
-
 
 <div th:replace="~{client/layout/footer :: footer}"></div>
 

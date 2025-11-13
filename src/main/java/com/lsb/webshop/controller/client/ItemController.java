@@ -52,6 +52,9 @@ public class ItemController {
             mav.addObject("id", id);
             mav.addObject("factories", this.productService.getAllFactories());
             mav.addObject("products", this.productService.getAllProducts());
+
+            List<Product> similarProducts = productService.getSimilarProducts(pr);
+            mav.addObject("similarProducts", similarProducts);
         } else {
             mav.setViewName("redirect:/products");
         }
@@ -217,4 +220,6 @@ public class ItemController {
     public String orderSuccess() {
         return "client/order_success_page"; // (Bạn cần tạo file: client/order_success_page.html)
     }
+
+
 }

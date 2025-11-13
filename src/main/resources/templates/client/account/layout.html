@@ -1,0 +1,122 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org"
+      th:fragment="layout(pageTitle, content)"> <!-- (Định nghĩa fragment) -->
+<head>
+    <meta charset="UTF-8">
+    <title th:text="${pageTitle} + ' - LSB Webshop'">Trang tài khoản</title>
+    <!-- (Copy toàn bộ <head> từ trang chủ của bạn vào đây) -->
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="_csrf" th:content="${_csrf.token}" />
+    <meta name="_csrf_header" th:content="${_csrf.headerName}" />
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <!-- (v.v... link CSS) -->
+    <link href="/client/css/bootstrap.min.css" rel="stylesheet">
+    <link href="/client/css/style.css" rel="stylesheet">
+
+    <style>
+        /* CSS riêng cho trang Account */
+        .account-layout {
+            display: flex;
+        }
+        .account-sidebar {
+            width: 280px;
+            flex-shrink: 0;
+            background: #f8f9fa;
+            border-right: 1px solid #dee2e6;
+        }
+        .account-sidebar .nav-link {
+            color: #333;
+            font-weight: 600;
+            padding: 0.75rem 1.5rem;
+            border-left: 3px solid transparent;
+        }
+        .account-sidebar .nav-link.active {
+            color: var(--primary-color);
+            background-color: #fff;
+            border-left-color: var(--primary-color);
+        }
+        .account-sidebar .nav-link:hover {
+            background-color: #e9ecef;
+        }
+        .account-content {
+            flex-grow: 1;
+            padding: 2rem;
+        }
+    </style>
+</head>
+<body>
+
+<!-- (Spinner) -->
+<div id="spinner" class="show w-100 vh-100 bg-white position-fixed translate-middle top-50 start-50  d-flex align-items-center justify-content-center">
+    <div class="spinner-grow text-primary" role="status"></div>
+</div>
+
+<!-- (Header) -->
+<div th:replace="~{client/layout/header :: header}"></div>
+
+<!-- (Chatbot) -->
+<div th:replace="~{client/layout/chatbot :: chatbot}"></div>
+
+
+<!-- ===== NỘI DUNG CHÍNH CỦA TRANG TÀI KHOẢN ===== -->
+<div class="container-fluid py-5">
+    <div class="container py-5">
+
+        <div class="row account-layout">
+
+            <!-- 1. Thanh Sidebar (Bên trái) -->
+            <div class="col-md-3 account-sidebar">
+                <div class="nav flex-column nav-pills" role="tablist" aria-orientation="vertical">
+
+                    <!-- ===== SỬA LỖI 1 ===== -->
+                    <a class="nav-link"
+                       th:classappend="${#request.requestURI == '/account/profile' ? 'active' : ''}"
+                       th:href="@{/account/profile}">Hồ sơ cá nhân</a>
+
+                    <!-- ===== SỬA LỖI 2 ===== -->
+                    <a class="nav-link"
+                       th:classappend="${#request.requestURI.startsWith('/account/orders') ? 'active' : ''}"
+                       th:href="@{/account/orders}">Lịch sử đơn hàng</a>
+
+                    <!-- ===== SỬA LỖI 3 ===== -->
+                    <a class="nav-link"
+                       th:classappend="${#request.requestURI == '/account/change-password' ? 'active' : ''}"
+                       th:href="@{/account/change-password}">Đổi mật khẩu</a>
+
+                    <a class="nav-link" th:href="@{/logout}">Đăng xuất</a>
+                </div>
+            </div>
+
+            <!-- 2. Nội dung chính (Bên phải) -->
+            <div class="col-md-9 account-content">
+                <!-- (Thymeleaf sẽ chèn nội dung của các trang con vào đây) -->
+                <div th:replace="${content}"></div>
+            </div>
+
+        </div>
+
+    </div>
+</div>
+<!-- ===== KẾT THÚC NỘI DUNG CHÍNH ===== -->
+
+
+<!-- (Footer) -->
+<div th:replace="~{client/layout/footer :: footer}"></div>
+
+<!-- (Back to Top) -->
+<a href="#" class="btn btn-primary border-3 border-primary rounded-circle back-to-top"><i class="fa fa-arrow-up"></i></a>
+
+<!-- (Modals & Toasts - Giả sử bạn có file này) -->
+<!-- <div th:replace="~{client/layout/modals :: modals}"></div> -->
+
+<!-- (Scripts) -->
+<script src="https://ajax.googleapis.com/ajax/libs/jquery/3.6.4/jquery.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.0.0/dist/js/bootstrap.bundle.min.js"></script>
+<script src="/client/lib/easing/easing.min.js"></script>
+<script src="/client/lib/waypoints/waypoints.min.js"></script>
+<script src="/client/lib/lightbox/js/lightbox.min.js"></script>
+<script src="/client/lib/owlcarousel/owl.carousel.min.js"></script>
+<script src="/client/js/main.js"></script>
+
+</body>
+</html>

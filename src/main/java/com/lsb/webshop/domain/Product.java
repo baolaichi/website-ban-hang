@@ -16,6 +16,8 @@ import lombok.Data;
 import lombok.Getter;
 import lombok.Setter;
 
+import com.fasterxml.jackson.annotation.JsonManagedReference;
+
 @Entity
 @Data
 @Getter
@@ -65,6 +67,7 @@ public class Product {
 
     @ManyToOne
     @JoinColumn(name = "category_id")
+    @JsonManagedReference
     private Category category;
 
     private boolean deleted = false;

@@ -1,5 +1,6 @@
 package com.lsb.webshop.domain;
 
+import java.time.LocalDateTime;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
@@ -7,6 +8,7 @@ import java.util.Set;
 import jakarta.persistence.*;
 import lombok.Getter;
 import lombok.Setter;
+import org.hibernate.annotations.CreationTimestamp;
 
 @Entity
 @Getter
@@ -32,4 +34,8 @@ public class Order {
 
     @OneToMany(mappedBy = "order", cascade = CascadeType.ALL, orphanRemoval = true)
     private Set<Payment> payments = new HashSet<>();
+
+    @CreationTimestamp // Tự động gán ngày giờ khi tạo
+    @Column(name = "created_at", nullable = false, updatable = false)
+    private LocalDateTime createdAt;
 }
