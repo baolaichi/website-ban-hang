@@ -1,6 +1,7 @@
 package com.lsb.webshop.repository;
 
 import java.util.List;
+import java.util.Optional;
 
 import org.springframework.data.jpa.repository.JpaRepository;
 
@@ -15,7 +16,7 @@ import org.springframework.data.repository.query.Param;
 public interface CartDetailRepository extends JpaRepository<CartDetail, Long>{
     boolean existsByCartAndProduct(Cart cart, Product product);
 
-    CartDetail findByCartAndProduct(Cart cartId, Product productId);
+    Optional<CartDetail> findByCartAndProduct(Cart cart, Product product);
 
     List<CartDetail> findByCart(Cart cart);
 

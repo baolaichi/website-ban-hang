@@ -46,7 +46,8 @@ public class CustomSuccessHandler implements AuthenticationSuccessHandler {
                 return roleTargetUrlMap.get(authorityName);
             }
         }
-        throw new IllegalStateException("Không tìm thấy role hợp lệ.");
+        // Default fallback if no role matches or for custom logic
+        return "/";
     }
 
     // Lưu fullName và avatar vào session
@@ -64,7 +65,16 @@ public class CustomSuccessHandler implements AuthenticationSuccessHandler {
             session.setAttribute("avatar", user.getAvatar());
             session.setAttribute("id", user.getId());
             session.setAttribute("email", user.getEmail());
-            int sum = user.getCart().getSum();
+
+            // ===== BẮT ĐẦU SỬA LỖI =====
+            int sum = 0;
+            // Chỉ cần kiểm tra user.getCart() có tồn tại không
+            // Vì 'sum' là int nên không cần check null
+            if (user.getCart() != null) {
+                sum = user.getCart().getSum();
+            }
+            // ===== KẾT THÚC SỬA LỖI =====
+
             session.setAttribute("sum", sum);
         }
     }
