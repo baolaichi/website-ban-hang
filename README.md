@@ -120,9 +120,8 @@ feature/*: Các nhánh tính năng riêng biệt (ví dụ: feature/payment-vnpa
 
 ---
 
-### PHẦN 2: HƯỚNG DẪN QUY TRÌNH GIT FLOW (Cho project của bạn)
+### PHẦN 2: HƯỚNG DẪN QUY TRÌNH GIT FLOW
 
-Dựa trên log của bạn:
 * Bạn đang ở nhánh `master`.
 * Bạn vừa commit trực tiếp vào `master` (`update new`).
 
