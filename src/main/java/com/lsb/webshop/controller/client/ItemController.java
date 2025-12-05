@@ -4,18 +4,22 @@ import com.lsb.webshop.domain.*;
 import com.lsb.webshop.repository.CartDetailRepository;
 import com.lsb.webshop.service.CartService;
 import com.lsb.webshop.service.OrderService;
-import com.lsb.webshop.service.PaymentService; // <-- Thêm import
+import com.lsb.webshop.service.PaymentService;
 import com.lsb.webshop.service.ProductService;
 import com.lsb.webshop.service.UserService;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpSession;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType; // <-- Import cần thiết
+import org.springframework.http.ResponseEntity; // <-- Import cần thiết
 import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.servlet.ModelAndView;
-// (Xóa import @Transactional nếu còn)
 
 import java.util.ArrayList;
+import java.util.HashMap; // <-- Import cần thiết
 import java.util.List;
+import java.util.Map;     // <-- Import cần thiết
 import java.util.Optional;
 
 @Controller
@@ -26,21 +30,20 @@ public class ItemController {
     private final CartService cartService;
     private final CartDetailRepository cartDetailRepository;
     private final OrderService orderService;
-    private final PaymentService paymentService; // <-- Thêm PaymentService
+    private final PaymentService paymentService;
 
     public ItemController(ProductService productService, UserService userService,
                           CartService cartService, CartDetailRepository cartDetailRepository,
-                          OrderService orderService, PaymentService paymentService) { // <-- Thêm vào constructor
+                          OrderService orderService, PaymentService paymentService) {
         this.productService = productService;
         this.userService = userService;
         this.cartService = cartService;
         this.cartDetailRepository = cartDetailRepository;
         this.orderService = orderService;
-        this.paymentService = paymentService; // <-- Gán
+        this.paymentService = paymentService;
     }
 
-    // (Các hàm /product/{id}, /add-product-to-cart, /cart, /cart/update giữ nguyên)
-
+    // ===== 1. TRANG CHI TIẾT SẢN PHẨM =====
     @GetMapping("/product/{id}")
     public ModelAndView showProductDetail(@PathVariable long id) {
         ModelAndView mav = new ModelAndView("client/product/detail");
@@ -61,17 +64,24 @@ public class ItemController {
         return mav;
     }
 
+    // ===== 2. THÊM VÀO GIỎ HÀNG (AJAX API) =====
+    // Hàm này trả về JSON để JS cập nhật giao diện mà không reload trang
     @PostMapping("/add-product-to-cart/{id}")
-    public ModelAndView addProductToCart(@PathVariable long id, HttpServletRequest request) {
-        ModelAndView mav = new ModelAndView();
-        if (cartService.addProductToCart(request, id)) {
-            mav.setViewName("redirect:/");
+    public String addProductToCart(@PathVariable long id, HttpServletRequest request) {
+        // Gọi service để thêm sản phẩm
+        boolean success = cartService.addProductToCart(request, id);
+
+        if (success) {
+            // Lấy trang người dùng vừa đứng (Referer) để redirect quay lại đó
+            String referer = request.getHeader("Referer");
+            return "redirect:" + (referer != null ? referer : "/");
         } else {
-            mav.setViewName("redirect:/login");
+            // Nếu chưa đăng nhập hoặc lỗi
+            return "redirect:/login";
         }
-        return mav;
     }
 
+    // ===== 3. TRANG GIỎ HÀNG =====
     @GetMapping("/cart")
     public ModelAndView getCartPage(HttpServletRequest request) {
         ModelAndView mav = new ModelAndView();
@@ -82,7 +92,6 @@ public class ItemController {
             return mav;
         }
 
-        // Lấy User đầy đủ
         User currentUser = userService.getCurrentUser();
         if (currentUser == null) {
             mav.setViewName("redirect:/login");
@@ -108,13 +117,28 @@ public class ItemController {
         return mav;
     }
 
-    // (Hàm /cart/update giữ nguyên)
+    // ===== 4. CẬP NHẬT SỐ LƯỢNG GIỎ HÀNG (AJAX API) =====
+    // Hàm này xử lý khi bấm nút +/- trong trang giỏ hàng
+    @PostMapping(value = "/cart/update", produces = MediaType.APPLICATION_JSON_VALUE)
+    @ResponseBody
+    public ResponseEntity<Map<String, Object>> updateQuantity(
+            @RequestParam("productId") Long productId,
+            @RequestParam("quantity") int quantity,
+            HttpServletRequest request) {
 
+        Map<String, Object> response = cartService.handleUpdateQuantity(request, productId, quantity);
+
+        HttpStatus status = (HttpStatus) response.getOrDefault("status", HttpStatus.OK);
+        response.remove("status"); // Xóa status code khỏi body JSON
+
+        return ResponseEntity.status(status).body(response);
+    }
+
+    // ===== 5. TRANG THANH TOÁN (CHECKOUT) =====
     @GetMapping("/checkout")
     public ModelAndView getCheckoutPage(HttpServletRequest request) {
         ModelAndView mav = new ModelAndView("client/cart/checkout");
 
-        // Lấy User đầy đủ
         User currentUser = userService.getCurrentUser();
         if (currentUser == null) {
             mav.setViewName("redirect:/login");
@@ -142,54 +166,38 @@ public class ItemController {
         return mav;
     }
 
-    /**
-     * HÀM NÀY XỬ LÝ THANH TOÁN (CẢ COD VÀ VNPAY)
-     * (ĐÃ CẬP NHẬT)
-     */
-    // (Xóa @Transactional nếu còn)
+    // ===== 6. XỬ LÝ ĐẶT HÀNG (COD & VNPAY) =====
     @PostMapping("/place-order")
     public String handlePlaceOrder(
-            HttpServletRequest request, // Cần cho VNPAY
+            HttpServletRequest request,
             @RequestParam("receiverName") String receiverName,
             @RequestParam("receiverAddress") String receiverAddress,
             @RequestParam("receiverPhone") String receiverPhone,
             @RequestParam("paymentMethod") String paymentMethod) {
 
-        // 1. Kiểm tra session và lấy User (Cách này an toàn hơn)
         User currentUser = userService.getCurrentUser();
         if (currentUser == null) {
             return "redirect:/login";
         }
 
         try {
-            // Bước 1: Tạo đơn hàng (Order) ở trạng thái PENDING
+            // Bước 1: Tạo đơn hàng (PENDING)
             Order newOrder = orderService.createOrderFromCart(receiverName, receiverAddress, receiverPhone);
 
-            // Bước 2: Kiểm tra phương thức thanh toán
+            // Bước 2: Phân luồng thanh toán
             if ("COD".equals(paymentMethod)) {
-
-                // Cập nhật trạng thái đơn hàng (ví dụ: PROCESSING)
+                // COD: Cập nhật trạng thái, xóa giỏ, chuyển trang thành công
                 orderService.updateOrderStatus(newOrder, "PROCESSING");
-
-                // ===== BẮT ĐẦU SỬA LỖI (CẬP NHẬT DÒNG NÀY) =====
-                // Xóa giỏ hàng (vì đã xác nhận COD)
-                orderService.clearUserCart(currentUser); // Truyền User vào
-                // ===== KẾT THÚC SỬA LỖI =====
-
-                // Chuyển đến trang đặt hàng thành công
+                orderService.clearUserCart(currentUser);
                 return "redirect:/order-success";
 
             } else if ("VNPAY".equals(paymentMethod)) {
-
-                // Nếu là VNPAY, gọi PaymentService để tạo URL
+                // VNPAY: Tạo URL và chuyển hướng
                 Long amount = (long) newOrder.getTotalPrice();
                 String paymentUrl = paymentService.createPayment(request, newOrder.getId(), amount);
-
-                // Chuyển hướng người dùng sang VNPAY
                 return "redirect:" + paymentUrl;
             }
 
-            // Xử lý lỗi nếu phương thức thanh toán không hợp lệ
             return "redirect:/checkout?error=invalid_payment";
 
         } catch (Exception e) {
@@ -198,28 +206,32 @@ public class ItemController {
         }
     }
 
-    // (Các hàm /thanks, /delete-product-from-cart, /order-success giữ nguyên)
+    // ===== 7. CÁC TRANG PHỤ TRỢ =====
+
     @GetMapping("/thanks")
     public ModelAndView getThankYouPage() {
         return new ModelAndView("client/cart/thanks");
     }
 
+    // ===== 8. XÓA SẢN PHẨM KHỎI GIỎ =====
     @PostMapping("/delete-product-from-cart/{id}")
-    public ModelAndView deleteProductFromCart(@PathVariable long id, HttpServletRequest request) {
-        ModelAndView mav = new ModelAndView("redirect:/cart");
+    public String deleteProductFromCart(@PathVariable long id, HttpServletRequest request) {
         HttpSession session = request.getSession(false);
-        if (session != null) {
-            this.cartService.removeProductCart(id, session);
-        } else {
-            mav.setViewName("redirect:/login");
+
+        // Kiểm tra đăng nhập
+        if (session == null || userService.getCurrentUser() == null) {
+            return "redirect:/login";
         }
-        return mav;
+
+        // Gọi service xóa
+        this.cartService.removeProductCart(id, session);
+
+        // Quay lại trang giỏ hàng
+        return "redirect:/cart";
     }
 
     @GetMapping("/order-success")
     public String orderSuccess() {
-        return "client/order_success_page"; // (Bạn cần tạo file: client/order_success_page.html)
+        return "client/order_success_page";
     }
-
-
 }

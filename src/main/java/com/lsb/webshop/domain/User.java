@@ -1,5 +1,6 @@
 package com.lsb.webshop.domain;
 
+import java.time.LocalDateTime;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
@@ -64,4 +65,7 @@ public class User {
     // Bạn cũng nên có quan hệ với Order và Cart
     @OneToMany(mappedBy = "user")
     private Set<Order> orders = new HashSet<>();
+
+    private String resetToken; // Lưu mã OTP (ví dụ: "123456")
+    private LocalDateTime tokenExpiryDate; // Lưu thời gian hết hạn
 }

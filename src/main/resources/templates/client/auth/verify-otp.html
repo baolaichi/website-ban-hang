@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <title>Xác nhận OTP</title>
+    <link href="/client/css/bootstrap.min.css" rel="stylesheet">
+</head>
+<body class="bg-light">
+<div class="container mt-5">
+    <div class="row justify-content-center">
+        <div class="col-md-5">
+            <div class="card shadow-sm">
+                <div class="card-body p-4">
+                    <h3 class="text-center mb-4">Đặt lại mật khẩu</h3>
+                    <p class="text-center text-muted">Mã OTP đã được gửi đến email của bạn.</p>
+
+                    <div th:if="${error}" class="alert alert-danger" th:text="${error}"></div>
+
+                    <form th:action="@{/verify-otp}" method="post">
+                        <div class="mb-3">
+                            <label class="form-label">Mã OTP (6 số)</label>
+                            <input type="text" class="form-control" name="otp" required placeholder="123456" maxlength="6">
+                        </div>
+
+                        <div class="mb-3">
+                            <label class="form-label">Mật khẩu mới</label>
+                            <input type="password" class="form-control" name="newPassword" required minlength="6">
+                        </div>
+
+                        <button type="submit" class="btn btn-success w-100">Đổi mật khẩu</button>
+                    </form>
+
+                    <div class="mt-3 text-center">
+                        <a th:href="@{/forgot-password}">Gửi lại mã?</a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+</body>
+</html>

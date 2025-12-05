@@ -1,32 +1,36 @@
 package com.lsb.webshop.config;
 
+import jakarta.servlet.http.HttpServletRequest;
 import org.springframework.stereotype.Component;
+
 import javax.crypto.Mac;
 import javax.crypto.spec.SecretKeySpec;
 import java.nio.charset.StandardCharsets;
-import java.util.Map;
-import java.util.Random;
-import java.util.SortedMap;
-import java.util.TreeMap;
-import java.util.stream.Collectors;
+import java.util.*;
+import java.net.URLEncoder;
 
 @Component
 public class VnPayConfig {
 
-    // Hàm này dùng để tạo chữ ký HmacSHA512
+    /**
+     * Tạo chữ ký HMAC-SHA512
+     * @param key: Chuỗi bí mật (Secret Key)
+     * @param data: Chuỗi dữ liệu cần mã hóa
+     * @return Chuỗi mã hóa (Checksum)
+     */
     public static String hmacSHA512(final String key, final String data) {
         try {
             if (key == null || data == null) {
                 throw new NullPointerException();
             }
             final Mac hmac512 = Mac.getInstance("HmacSHA512");
-            byte[] hmacKeyBytes = key.getBytes(StandardCharsets.UTF_8);
+            byte[] hmacKeyBytes = key.getBytes();
             final SecretKeySpec secretKey = new SecretKeySpec(hmacKeyBytes, "HmacSHA512");
             hmac512.init(secretKey);
             byte[] dataBytes = data.getBytes(StandardCharsets.UTF_8);
             byte[] result = hmac512.doFinal(dataBytes);
 
-            // Chuyển byte array sang hex string
+            // Chuyển đổi byte array sang chuỗi Hex
             StringBuilder sb = new StringBuilder(2 * result.length);
             for (byte b : result) {
                 sb.append(String.format("%02x", b & 0xff));
@@ -34,24 +38,30 @@ public class VnPayConfig {
             return sb.toString();
 
         } catch (Exception e) {
-            throw new RuntimeException("Lỗi khi tạo chữ ký HMAC-SHA512", e);
+            return "";
         }
     }
 
-    // Hàm này dùng để tạo hash data từ một Map các tham số
-    public static String hashAllFields(Map<String, String> fields, String hashSecret) {
-        // Sắp xếp các trường theo thứ tự alphabet
-        SortedMap<String, String> sortedFields = new TreeMap<>(fields);
-
-        // Tạo chuỗi hash data
-        String hashData = sortedFields.entrySet().stream()
-                .map(entry -> entry.getKey() + "=" + entry.getValue())
-                .collect(Collectors.joining("&"));
-
-        return hmacSHA512(hashSecret, hashData);
+    /**
+     * Lấy địa chỉ IP của người dùng gửi yêu cầu.
+     * VNPAY yêu cầu tham số vnp_IpAddr chính xác.
+     */
+    public static String getIpAddress(HttpServletRequest request) {
+        String ipAdress;
+        try {
+            ipAdress = request.getHeader("X-FORWARDED-FOR");
+            if (ipAdress == null) {
+                ipAdress = request.getRemoteAddr();
+            }
+        } catch (Exception e) {
+            ipAdress = "Invalid IP:" + e.getMessage();
+        }
+        return ipAdress;
     }
 
-    // Hàm tạo số ngẫu nhiên cho vnp_TxnRef
+    /**
+     * Tạo chuỗi số ngẫu nhiên (dùng cho vnp_TxnRef)
+     */
     public static String getRandomNumber(int len) {
         Random rnd = new Random();
         String chars = "0123456789";
@@ -60,5 +70,29 @@ public class VnPayConfig {
             sb.append(chars.charAt(rnd.nextInt(chars.length())));
         }
         return sb.toString();
+    }
+
+    /**
+     * Tạo chuỗi hash từ tất cả các trường (đã sắp xếp)
+     * Dùng để kiểm tra chữ ký trả về từ VNPAY
+     */
+    public static String hashAllFields(Map<String, String> fields, String hashSecret) {
+        List<String> fieldNames = new ArrayList<>(fields.keySet());
+        Collections.sort(fieldNames);
+        StringBuilder sb = new StringBuilder();
+        Iterator<String> itr = fieldNames.iterator();
+        while (itr.hasNext()) {
+            String fieldName = itr.next();
+            String fieldValue = fields.get(fieldName);
+            if ((fieldValue != null) && (fieldValue.length() > 0)) {
+                sb.append(fieldName);
+                sb.append("=");
+                sb.append(fieldValue);
+            }
+            if (itr.hasNext()) {
+                sb.append("&");
+            }
+        }
+        return hmacSHA512(hashSecret,sb.toString());
     }
 }

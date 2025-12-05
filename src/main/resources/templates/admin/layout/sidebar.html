@@ -33,6 +33,12 @@
                         <div class="sb-nav-link-icon"><i class="fas fa-box"></i></div>
                         Category
                     </a>
+
+                    <a class="nav-link" th:href="@{/admin/chat-logs}"
+                       th:classappend="${currentPath != null && currentPath.startsWith('/admin/chat-logs') ? 'active' : ''}">
+                        <div class="sb-nav-link-icon"><i class="fas fa-comments"></i></div>
+                        History chat
+                    </a>
                 </div>
             </div>
 

@@ -15,10 +15,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Optional;
+import java.util.*;
 
 @Service
 @Transactional
@@ -169,33 +166,42 @@ public class CartService {
         User user = userService.getCurrentUser();
         if (user == null) return;
 
-        // Tải User managed
         User managedUser = userService.findByUsername(user.getEmail());
+        Cart cart = managedUser.getCart();
 
-        try {
-            Optional<CartDetail> detailOpt = cartDetailRepository.findById(cartDetailId);
+        if (cart == null) return;
 
-            if (detailOpt.isPresent()) {
-                CartDetail detail = detailOpt.get();
+        Optional<CartDetail> detailOpt = cartDetailRepository.findById(cartDetailId);
 
-                // Kiểm tra quyền sở hữu (Security check)
-                // Đảm bảo người dùng chỉ xóa được sản phẩm trong giỏ CỦA MÌNH
-                if (detail.getCart().getUser().getId().equals(managedUser.getId())) {
+        if (detailOpt.isPresent()) {
+            CartDetail detail = detailOpt.get();
 
-                    Cart cart = detail.getCart();
+            // ===== BẮT ĐẦU SỬA LỖI =====
 
-                    // Xóa chi tiết sản phẩm
-                    cartDetailRepository.delete(detail);
+            // Sử dụng Objects.equals để so sánh an toàn cho cả Long và long
+            // Hoặc nếu id của bạn là 'long' (nguyên thủy), dùng '=='
 
-                    // (Tùy chọn) Nếu giỏ hàng trống, có thể xóa luôn Cart hoặc giữ lại
-                    // Hiện tại giữ lại Cart rỗng là cách an toàn nhất.
+            Long cartIdFromDetail = detail.getCart().getId();
+            Long currentCartId = cart.getId();
 
-                    // Cập nhật lại session sum sau khi xóa
-                    updateSessionSum(session, managedUser);
+            if (Objects.equals(cartIdFromDetail, currentCartId)) {
+
+                // 1. Xóa khỏi danh sách của Cart (quan trọng cho Hibernate)
+                cart.getCartDetails().remove(detail);
+
+                // 2. Xóa khỏi CSDL
+                cartDetailRepository.delete(detail);
+
+                // 3. Cập nhật session
+                int newSum = 0;
+                // (Lưu ý: cart.getCartDetails() lúc này đã mất 1 phần tử trong bộ nhớ)
+                for (CartDetail cd : cart.getCartDetails()) {
+                    newSum += cd.getQuantity();
                 }
+                session.setAttribute("sum", newSum);
             }
-        } catch (Exception e) {
-            log.error("[CartService] Lỗi khi xóa sản phẩm: {}", e.getMessage());
+
+            // ===== KẾT THÚC SỬA LỖI =====
         }
     }
 

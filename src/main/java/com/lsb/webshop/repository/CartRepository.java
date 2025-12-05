@@ -15,8 +15,8 @@ import java.util.Optional;
 @Repository
 public interface CartRepository extends JpaRepository<Cart, Long>{
     Cart findByUser(User user);
-    
-    @Query("SELECT c FROM Cart c LEFT JOIN FETCH c.cartDetails WHERE c.user = :user AND c.status = false")
+
+    @Query("SELECT c FROM Cart c LEFT JOIN FETCH c.cartDetails WHERE c.user = :user AND c.status = :status")
     Cart findByUserAndStatus(@Param("user") User user, @Param("status") boolean status);
 
 

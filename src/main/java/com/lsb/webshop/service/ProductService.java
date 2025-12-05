@@ -6,6 +6,7 @@ import java.util.Optional;
 import java.util.stream.Collectors;
 
 import com.lsb.webshop.domain.dto.ProductDTO;
+import org.springframework.data.domain.Page;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 import org.springframework.transaction.annotation.Transactional;
@@ -286,6 +287,14 @@ public class ProductService {
 // ... (code)
     }
 
+    public List<Product> searchProducts(String keyword) {
+        if (keyword == null || keyword.trim().isEmpty()) {
+            return getAllActiveProducts();
+        }
+        // Sử dụng repository để tìm kiếm (đã có findByNameContainingIgnoreCase)
+        return productRepository.findByNameContainingIgnoreCase(keyword.trim());
+    }
+
 
     /**
      * CACHED (Sống lâu): Cache danh sách "Sản phẩm tương tự".
@@ -333,5 +342,18 @@ public class ProductService {
         // (Nếu không, dùng tạm logic này - trả về bán chạy nhất)
         Pageable pageable = PageRequest.of(0, 5, Sort.by("sold").descending());
         return productRepository.findAll(pageable).getContent();
+    }
+
+    public Page<Product> fetchClientProducts(int pageNo, int pageSize) {
+        Pageable pageable = PageRequest.of(pageNo, pageSize);
+        return productRepository.findAllByDeletedFalse(pageable);
+    }
+
+    /**
+     * Tìm kiếm sản phẩm cho Client có phân trang
+     */
+    public Page<Product> searchClientProducts(String keyword, int pageNo, int pageSize) {
+        Pageable pageable = PageRequest.of(pageNo, pageSize);
+        return productRepository.findByNameContainingIgnoreCaseAndDeletedFalse(keyword, pageable);
     }
 }

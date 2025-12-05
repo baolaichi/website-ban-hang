@@ -27,7 +27,7 @@ import lombok.extern.slf4j.Slf4j;
 @Controller
 @Slf4j
 @RequestMapping("/admin")
-public class ProductController {
+public class ProductController extends BaseController{
     private final ProductService productService;
     private final CategoryService categoryService;
 

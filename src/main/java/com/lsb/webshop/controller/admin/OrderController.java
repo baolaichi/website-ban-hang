@@ -11,7 +11,7 @@ import java.util.Optional;
 
 @Controller
 @RequestMapping("/admin/order") // Đặt mapping gốc
-public class OrderController { // Đổi tên class
+public class OrderController extends BaseController{ // Đổi tên class
 
     private final OrderService orderService;
 

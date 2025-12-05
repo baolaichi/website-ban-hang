@@ -17,7 +17,7 @@ import lombok.extern.slf4j.Slf4j;
 @Controller
 @RequestMapping("/admin/categories")
 @Slf4j
-public class CategoryController {
+public class CategoryController extends BaseController{
 
     private final CategoryService categoryService;
 

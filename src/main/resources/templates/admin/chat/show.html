@@ -1,0 +1,88 @@
+<!DOCTYPE html>
+<html lang="vi" xmlns:th="http://www.thymeleaf.org"
+      th:replace="~{admin/layout/admin-layout :: admin-layout(~{::title}, ~{::main}, ~{::#custom-scripts})}">
+
+<head>
+    <title>Lịch sử Chatbot</title>
+</head>
+
+<body>
+
+<main th:fragment="main">
+    <div class="container-fluid px-4">
+        <h1 class="mt-4">Lịch sử Hội thoại Chatbot</h1>
+        <ol class="breadcrumb mb-4">
+            <li class="breadcrumb-item"><a th:href="@{/admin}">Dashboard</a></li>
+            <li class="breadcrumb-item active">Chat Logs</li>
+        </ol>
+
+        <div class="card mb-4">
+            <div class="card-header">
+                <i class="fas fa-comments me-1"></i>
+                Toàn bộ tin nhắn (User & Bot)
+            </div>
+            <div class="card-body">
+                <table id="chatLogTable" class="table table-hover table-striped">
+                    <thead>
+                    <tr>
+                        <th>ID</th>
+                        <th>Thời gian</th>
+                        <th>Người gửi</th>
+                        <th>Nội dung</th>
+                        <th>Intent (Ý định)</th>
+                        <th>User (Email)</th>
+                        <th>Session ID</th>
+                    </tr>
+                    </thead>
+                    <tbody>
+                    <tr th:each="log : ${chatLogs}">
+                        <td th:text="${log.id}"></td>
+
+                        <!-- Format thời gian -->
+                        <td th:text="${#temporals.format(log.timestamp, 'dd-MM-yyyy HH:mm:ss')}"></td>
+
+                        <!-- Người gửi: Tô màu để dễ nhìn -->
+                        <td>
+                                    <span class="badge"
+                                          th:classappend="${log.sender == 'USER' ? 'bg-primary' : 'bg-success'}"
+                                          th:text="${log.sender}">
+                                    </span>
+                        </td>
+
+                        <td th:text="${log.message}"></td>
+
+                        <!-- Intent (chỉ hiện nếu có) -->
+                        <td>
+                                    <span th:if="${log.intent != null}"
+                                          class="badge bg-secondary"
+                                          th:text="${log.intent}"></span>
+                        </td>
+
+                        <!-- Email người dùng (nếu đã đăng nhập) -->
+                        <td th:text="${log.user != null ? log.user.email : 'Khách vãng lai'}"></td>
+
+                        <td class="small text-muted" th:text="${log.sessionId}"></td>
+                    </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</main>
+
+<div id="custom-scripts" th:fragment="custom-scripts">
+    <script>
+        window.addEventListener('DOMContentLoaded', event => {
+            const chatTable = document.getElementById('chatLogTable');
+            if (chatTable) {
+                new simpleDatatables.DataTable(chatTable, {
+                    searchable: true,
+                    perPage: 20 // Hiển thị 20 dòng mỗi trang
+                });
+            }
+        });
+    </script>
+</div>
+
+</body>
+</html>

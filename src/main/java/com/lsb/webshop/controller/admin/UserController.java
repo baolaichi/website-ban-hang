@@ -20,7 +20,7 @@ import org.springframework.web.servlet.ModelAndView;
 
 @Controller
 @RequestMapping("/admin")
-public class UserController {
+public class UserController extends BaseController{
     private final UserService userService;
     private final UploadService uploadService;
     private final PasswordEncoder passwordEncoder;

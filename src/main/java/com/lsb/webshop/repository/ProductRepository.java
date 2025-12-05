@@ -4,6 +4,7 @@ import java.util.List;
 import java.util.Optional;
 
 import com.lsb.webshop.domain.Category;
+import org.springframework.data.domain.Page;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.stereotype.Repository;
@@ -76,4 +77,11 @@ public interface ProductRepository extends JpaRepository<Product, Long> {
     Optional<Product> findByNameAndIdNot(String name, Long id);
 
     long countByCategory(Category category);
+
+    // 1. Lấy tất cả sản phẩm ACTIVE có phân trang (Cho trang /products)
+    Page<Product> findAllByDeletedFalse(Pageable pageable);
+
+    // 2. (Tùy chọn) Tìm kiếm có phân trang (Nếu bạn muốn search cũng phân trang)
+    Page<Product> findByNameContainingIgnoreCaseAndDeletedFalse(String name, Pageable pageable);
+
 }

@@ -13,7 +13,7 @@ import java.util.Map;
 
 @Controller
 @RequestMapping("/admin") // <-- Đặt mapping gốc cho controller
-public class DashBoardController {
+public class DashBoardController extends BaseController{
 
     private final DashboardService dashboardService;
 

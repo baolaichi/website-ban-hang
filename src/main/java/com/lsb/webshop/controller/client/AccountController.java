@@ -15,7 +15,6 @@ import org.springframework.web.servlet.ModelAndView;
 import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 
 import java.security.Principal;
-import java.util.List;
 import java.util.Optional;
 
 @Controller
@@ -24,21 +23,28 @@ public class AccountController {
 
     private final UserService userService;
     private final UploadService uploadService;
-    private final OrderService orderService; // Thêm OrderService
+    private final OrderService orderService;
 
     public AccountController(UserService userService, UploadService uploadService, OrderService orderService) {
         this.userService = userService;
         this.uploadService = uploadService;
-        this.orderService = orderService; // Tiêm
+        this.orderService = orderService;
     }
 
-    // ===== HỒ SƠ CÁ NHÂN =====
+    @ModelAttribute("currentPath")
+    public String getCurrentPath(HttpServletRequest request) {
+        return request.getRequestURI();
+    }
 
     @GetMapping("/profile")
-    public ModelAndView viewProfile(Principal principal) {
+    public ModelAndView viewProfile(Principal principal,
+                                    @ModelAttribute("successMessage") String successMessage,
+                                    @ModelAttribute("errorMessage") String errorMessage) {
         UserDTO userDTO = userService.getUserByEmail(principal.getName());
         ModelAndView mav = new ModelAndView("client/account/profile");
         mav.addObject("user", userDTO);
+        mav.addObject("successMessage", successMessage);
+        mav.addObject("errorMessage", errorMessage);
         return mav;
     }
 
@@ -46,7 +52,7 @@ public class AccountController {
     public ModelAndView updateProfile(@ModelAttribute("user") UserDTO userDTO,
                                       @RequestParam(value = "avatarFile", required = false) MultipartFile avatarFile,
                                       Principal principal,
-                                      RedirectAttributes redirectAttributes) { // Thêm RedirectAttributes
+                                      RedirectAttributes redirectAttributes) {
         ModelAndView mav = new ModelAndView();
         try {
             userService.updateProfile(userDTO, avatarFile, principal.getName());
@@ -54,17 +60,20 @@ public class AccountController {
             mav.setViewName("redirect:/account/profile");
             return mav;
         } catch (RuntimeException e) {
-            redirectAttributes.addFlashAttribute("errorMessage", e.getMessage());
-            mav.setViewName("redirect:/account/profile");
+            mav.setViewName("client/account/profile");
+            mav.addObject("errorMessage", e.getMessage());
+            mav.addObject("user", userDTO);
             return mav;
         }
     }
 
-    // ===== THAY ĐỔI MẬT KHẨU (MỚI) =====
-
     @GetMapping("/change-password")
-    public ModelAndView getChangePasswordPage() {
+    public ModelAndView getChangePasswordPage(
+            @ModelAttribute("successMessage") String successMessage,
+            @ModelAttribute("errorMessage") String errorMessage) {
         ModelAndView mav = new ModelAndView("client/account/change-password");
+        mav.addObject("successMessage", successMessage);
+        mav.addObject("errorMessage", errorMessage);
         return mav;
     }
 
@@ -74,10 +83,10 @@ public class AccountController {
             @RequestParam("newPassword") String newPassword,
             @RequestParam("confirmPassword") String confirmPassword,
             Principal principal,
-            RedirectAttributes redirectAttributes) { // Dùng để gửi thông báo
+            RedirectAttributes redirectAttributes) {
 
         if (!newPassword.equals(confirmPassword)) {
-            redirectAttributes.addFlashAttribute("errorMessage", "Mật khẩu xác nhận không khớp!");
+            redirectAttributes.addFlashAttribute("errorMessage", "Mật khẩu mới không khớp!");
             return "redirect:/account/change-password";
         }
 
@@ -86,51 +95,74 @@ public class AccountController {
             redirectAttributes.addFlashAttribute("successMessage", "Đổi mật khẩu thành công!");
             return "redirect:/account/change-password";
         } catch (AuthenticationException e) {
-            redirectAttributes.addFlashAttribute("errorMessage", "Mật khẩu cũ không chính xác!");
+            redirectAttributes.addFlashAttribute("errorMessage", e.getMessage());
             return "redirect:/account/change-password";
         } catch (Exception e) {
-            redirectAttributes.addFlashAttribute("errorMessage", "Đã xảy ra lỗi: " + e.getMessage());
+            redirectAttributes.addFlashAttribute("errorMessage", "Đã xảy ra lỗi, vui lòng thử lại.");
             return "redirect:/account/change-password";
         }
     }
 
-    // ===== LỊCH SỬ ĐƠN HÀNG (MỚI) =====
-
     @GetMapping("/orders")
-    public ModelAndView getOrderHistoryPage(Principal principal) {
+    public ModelAndView getOrderHistoryPage(Principal principal,
+                                            @ModelAttribute("error") String error) {
         ModelAndView mav = new ModelAndView("client/account/orders");
-        User currentUser = userService.findByUsername(principal.getName());
-        List<Order> orders = orderService.findOrdersByUser(currentUser);
-        mav.addObject("orders", orders);
+        User user = userService.findByUsername(principal.getName());
+        // OrderService trả về List<Order> nên không cần .get()
+        mav.addObject("orders", orderService.findOrdersByUser(user));
+
+        if ("notfound".equals(error)) {
+            mav.addObject("errorMessage", "Không tìm thấy đơn hàng hoặc đơn hàng không thuộc về bạn.");
+        }
         return mav;
     }
 
+    // ===== HÀM NÀY LÀ NƠI XẢY RA LỖI =====
     @GetMapping("/orders/{id}")
-    public ModelAndView getOrderDetailPage(@PathVariable("id") Long orderId, Principal principal) {
+    public ModelAndView getOrderDetailPage(@PathVariable("id") Long orderId, Principal principal,
+                                           RedirectAttributes redirectAttributes,
+                                           @ModelAttribute("successMessage") String successMessage,
+                                           @ModelAttribute("errorMessage") String errorMessage) {
         ModelAndView mav = new ModelAndView("client/account/order-detail");
-        User currentUser = userService.findByUsername(principal.getName());
+        User user = userService.findByUsername(principal.getName());
 
-        // Tìm đơn hàng bằng ID VÀ User (để bảo mật)
-        Optional<Order> order = orderService.findOrderByIdAndUser(orderId, currentUser);
+        // Hàm này trả về Optional<Order>
+        Optional<Order> orderOpt = orderService.findOrderByIdAndUser(orderId, user);
 
-        if (order == null) {
-            // Nếu không phải đơn hàng của user này, chuyển hướng
-            mav.setViewName("redirect:/account/orders?error=notfound");
+        if (orderOpt.isEmpty()) {
+            redirectAttributes.addFlashAttribute("error", "notfound");
+            mav.setViewName("redirect:/account/orders");
             return mav;
         }
 
-        mav.addObject("order", order);
+        // === QUAN TRỌNG NHẤT: PHẢI CÓ .get() ===
+        // Sai: mav.addObject("order", orderOpt);
+        // Đúng:
+        mav.addObject("order", orderOpt.get());
+        // =======================================
+
+        mav.addObject("successMessage", successMessage);
+        mav.addObject("errorMessage", errorMessage);
         return mav;
     }
 
-    // ===== BẮT ĐẦU SỬA LỖI (THÊM HÀM NÀY) =====
-    /**
-     * Thêm URL hiện tại vào Model cho TẤT CẢ các request
-     * để Thymeleaf có thể đọc và set 'active' class.
-     * Đây là cách sửa lỗi "request object is no longer available".
-     */
-    @ModelAttribute("currentPath")
-    public String getCurrentPath(HttpServletRequest request) {
-        return request.getRequestURI();
+    @PostMapping("/orders/cancel/{id}")
+    public String handleCancelOrder(@PathVariable("id") Long orderId, Principal principal, RedirectAttributes redirectAttributes) {
+        User user = userService.findByUsername(principal.getName());
+
+        try {
+            boolean success = orderService.cancelOrder(orderId, user);
+            if (success) {
+                redirectAttributes.addFlashAttribute("successMessage", "Đã hủy đơn hàng thành công.");
+            } else {
+                redirectAttributes.addFlashAttribute("errorMessage", "Không thể hủy đơn hàng (có thể đã giao).");
+            }
+        } catch (SecurityException e) {
+            redirectAttributes.addFlashAttribute("errorMessage", "Bạn không có quyền hủy đơn hàng này.");
+        } catch (Exception e) {
+            redirectAttributes.addFlashAttribute("errorMessage", "Đã xảy ra lỗi khi hủy đơn hàng.");
+        }
+
+        return "redirect:/account/orders/" + orderId;
     }
 }
