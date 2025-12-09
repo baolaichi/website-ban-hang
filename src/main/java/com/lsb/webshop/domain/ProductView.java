@@ -4,7 +4,7 @@ import jakarta.persistence.*;
 import lombok.Getter;
 import lombok.Setter;
 import org.hibernate.annotations.CreationTimestamp;
-
+import com.fasterxml.jackson.annotation.JsonIgnore; // Import
 import java.time.LocalDateTime;
 
 @Entity
@@ -12,22 +12,21 @@ import java.time.LocalDateTime;
 @Getter
 @Setter
 public class ProductView {
-
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    // Liên kết với Người dùng (có thể null nếu là khách)
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "user_id") // nullable = true là mặc định
+    @JoinColumn(name = "user_id")
+    @JsonIgnore // <--- CẮT
     private User user;
 
     @Column(name = "session_id", length = 255)
-    private String sessionId; // Dùng để theo dõi khách vãng lai
+    private String sessionId;
 
-    // Liên kết với Sản phẩm
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "product_id", nullable = false)
+    @JsonIgnore // <--- CẮT
     private Product product;
 
     @CreationTimestamp

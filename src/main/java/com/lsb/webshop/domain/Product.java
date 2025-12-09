@@ -3,11 +3,9 @@ package com.lsb.webshop.domain;
 import java.time.LocalDateTime;
 import java.util.HashSet;
 import java.util.Set;
-
 import jakarta.persistence.*;
 import org.hibernate.annotations.CreationTimestamp;
 import org.hibernate.annotations.UpdateTimestamp;
-
 import jakarta.validation.constraints.DecimalMin;
 import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.NotEmpty;
@@ -15,8 +13,8 @@ import jakarta.validation.constraints.NotNull;
 import lombok.Data;
 import lombok.Getter;
 import lombok.Setter;
-
 import com.fasterxml.jackson.annotation.JsonManagedReference;
+import com.fasterxml.jackson.annotation.JsonIgnore; // Import
 
 @Entity
 @Data
@@ -37,6 +35,7 @@ public class Product {
     private double price;
 
     private String image;
+    
     @NotNull
     @NotEmpty(message = "detailDesc không được để trống")
     @Column(columnDefinition = "MEDIUMTEXT")
@@ -52,6 +51,7 @@ public class Product {
 
     private long sold;
     private String factory;
+    
     @JoinColumn(name = "type")
     private String type;
 
@@ -67,14 +67,16 @@ public class Product {
 
     @ManyToOne
     @JoinColumn(name = "category_id")
-    @JsonManagedReference
+    @JsonManagedReference // Giữ cái này vì Category đang dùng JsonBackReference (Hợp lệ)
     private Category category;
 
     private boolean deleted = false;
 
     @OneToMany(mappedBy = "product")
+    @JsonIgnore // <--- CẮT VÒNG LẶP & GIẢM TẢI
     private Set<Rating> ratings = new HashSet<>();
 
     @OneToMany(mappedBy = "product")
+    @JsonIgnore // <--- CẮT VÒNG LẶP & GIẢM TẢI
     private Set<ProductView> productViews = new HashSet<>();
 }

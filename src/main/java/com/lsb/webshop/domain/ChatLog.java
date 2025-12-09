@@ -1,5 +1,6 @@
 package com.lsb.webshop.domain;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import jakarta.persistence.*;
 import lombok.Getter;
 import lombok.Setter;
@@ -23,6 +24,7 @@ public class ChatLog {
     // Liên kết với Người dùng (có thể null nếu là khách)
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "user_id") // nullable = true là mặc định
+    @JsonIgnore
     private User user;
 
     @Column(length = 50, nullable = false)

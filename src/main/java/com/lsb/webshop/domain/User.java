@@ -1,30 +1,26 @@
 package com.lsb.webshop.domain;
 
-import java.time.LocalDateTime;
 import java.util.HashSet;
-import java.util.List;
 import java.util.Set;
-
 import jakarta.persistence.*;
 import org.hibernate.annotations.SQLDelete;
 import org.hibernate.annotations.Where;
-
 import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
 import lombok.Data;
 import lombok.Getter;
 import lombok.Setter;
+import com.fasterxml.jackson.annotation.JsonIgnore; // Import
 
 @Entity
 @Data
 @Getter
 @Setter
 @Table(name = "users")
-@SQLDelete(sql = "UPDATE users SET deleted = true WHERE id = ?") 
+@SQLDelete(sql = "UPDATE users SET deleted = true WHERE id = ?")
 @Where(clause = "deleted = false")
 public class User {
-
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
@@ -43,29 +39,29 @@ public class User {
     private String address;
     private String phone;
     private String avatar;
-
     private boolean deleted = false;
 
     @ManyToOne
     @JoinColumn(name = "role_id")
-    private Role role;
+    private Role role; // Giữ lại Role để biết User là ai
 
     @OneToOne(mappedBy = "user", cascade = CascadeType.ALL, orphanRemoval = true)
+    @JsonIgnore // <--- CẮT VÒNG LẶP: Xem User không cần lôi giỏ hàng ra ngay
     private Cart cart;
 
     @OneToMany(mappedBy = "user")
+    @JsonIgnore // <--- CẮT: Không load lịch sử đánh giá
     private Set<Rating> ratings = new HashSet<>();
 
     @OneToMany(mappedBy = "user")
+    @JsonIgnore // <--- CẮT: Không load lịch sử xem hàng
     private Set<ProductView> productViews = new HashSet<>();
 
     @OneToMany(mappedBy = "user")
+    @JsonIgnore // <--- CẮT: Không load lịch sử chat
     private Set<ChatLog> chatLogs = new HashSet<>();
 
-    // Bạn cũng nên có quan hệ với Order và Cart
     @OneToMany(mappedBy = "user")
+    @JsonIgnore // <--- CẮT: Không load toàn bộ đơn hàng
     private Set<Order> orders = new HashSet<>();
-
-    private String resetToken; // Lưu mã OTP (ví dụ: "123456")
-    private LocalDateTime tokenExpiryDate; // Lưu thời gian hết hạn
 }

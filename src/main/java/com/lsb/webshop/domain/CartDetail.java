@@ -4,6 +4,7 @@ import jakarta.persistence.*;
 import lombok.Data;
 import lombok.Getter;
 import lombok.Setter;
+import com.fasterxml.jackson.annotation.JsonIgnore; // Import
 
 @Entity
 @Table(name = "cart_details")
@@ -20,9 +21,8 @@ public class CartDetail {
 
     @ManyToOne
     @JoinColumn(name = "cart_id")
+    @JsonIgnore // <--- CẮT VÒNG LẶP
     private Cart cart;
-
-
 
     @ManyToOne
     @JoinColumn(name = "product_id")
