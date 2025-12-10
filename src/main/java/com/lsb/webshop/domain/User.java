@@ -1,5 +1,6 @@
 package com.lsb.webshop.domain;
 
+import java.time.LocalDateTime;
 import java.util.HashSet;
 import java.util.Set;
 import jakarta.persistence.*;
@@ -64,4 +65,7 @@ public class User {
     @OneToMany(mappedBy = "user")
     @JsonIgnore // <--- CẮT: Không load toàn bộ đơn hàng
     private Set<Order> orders = new HashSet<>();
+
+    private String resetToken; // Token dùng để reset mật khẩu
+    private LocalDateTime tokenExpiryDate; // Thời gian hết hạn của token
 }
